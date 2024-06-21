@@ -6,6 +6,15 @@ from networkx import Graph
 
 
 def seq_to_net(seq: nn.Sequential) -> list[NetworkLayer]:
+    '''
+    Convert a PyTorch sequential model to a list of NetworkLayer objects
+
+    Args:
+    - seq (nn.Sequential): PyTorch sequential model
+
+    Returns:
+    - list[NetworkLayer]: List of NetworkLayer objects
+    '''
     layer_factory = LayerFactory()
     layers = []
     # create first layer

@@ -1,5 +1,4 @@
 from enum import Enum
-from numpy import ndarray
 import networkx as nx
 from pydantic import BaseModel
 from typing import Tuple
@@ -7,6 +6,10 @@ from typing import Tuple
 # ----------------- Enums -----------------
 
 class LayerType(Enum):
+    '''
+    Enum for the type of layer in a neural network. Not used for GNN, just for graph representation
+    Node features encapulate the layer type, so this is not strictly necessary (likely)
+    '''
     INPUT = -1
     OUTPUT = -1
     LINEAR = 1
@@ -15,16 +18,24 @@ class LayerType(Enum):
     RELU = 4
     
 class NodeType(Enum):
+    '''
+    Node types for param graph
+    - Will be used within the node features
+    - does not distinguish between weight/bias. can encode that in edge type
+    '''
     INPUT = -1
     OUTPUT = -1
-    NON_PARAMETRIC = -1
-    WEIGHT = 1
-    BIAS = 2
-    CONV = 3
-    NORM = 4
+    NON_PARAMETRIC = -1 # relu, softmax, etc
+    LINEAR = 1 # for both lin weight and lin bias (weight/bias is encoded in edge type)
+    CONV = 2 # for both conv weight and conv bias
+    NORM = 3
 
 class EdgeType(Enum):
-    NONPARAMETRIC = -1
+    '''
+    Edge types for param graph
+    Will be used within the edge features
+    '''
+    NONPARAMETRIC = -1 # relu, softmax, etc
     LIN_WEIGHT = 1
     LIN_BIAS = 2
     CONV_WEIGHT = 3
@@ -34,18 +45,17 @@ class EdgeType(Enum):
 
 # ----------------- Features -----------------
 class NodeFeatures(BaseModel):
-    layer_num: int
-    rel_index: int
-    node_type: NodeType
+    layer_num: int # layer number in the network
+    rel_index: int # index of the node within the layer
+    node_type: NodeType 
 
 class EdgeFeatures(BaseModel):
-    weight: float
-    layer_num: int
+    weight: float 
+    layer_num: int # layer number in the network
     edge_type: EdgeType
-    pos_encoding_x: int
-    pos_encoding_y: int
-    pos_encoding_depth: int
-
+    pos_encoding_x: int # x positional encoding of this parameter within the conv layer
+    pos_encoding_y: int # y positional encoding of this parameter within the conv layer
+    pos_encoding_depth: int # which layer of the conv cube this parameter is in
 # ----------------- Base Classes -----------------
 class Graph: pass
 class Layer(Graph): pass
@@ -53,6 +63,11 @@ class Node: pass
 class Edge: pass
 
 class Graph(nx.Graph):
+    '''
+    Base class for parameter graph
+    - Inherits from networkx Graph
+    - Will be used to represent the parameter graph
+    '''
     def __init__(self) -> None:
         super().__init__()
     def add_node(self, node: Node) -> None:
@@ -61,6 +76,11 @@ class Graph(nx.Graph):
         super().add_edge(edge.node1.node_id, edge.node2.node_id, edge)
     
 class NetworkLayer(Graph):
+    '''
+    Represents a layer in the network
+    - Contains nodes and edges
+    - is a Graph
+    '''
     layer_num: int
     layer_type: LayerType
     def __init__(self, layer_num: int, layer_type: LayerType) -> None:
