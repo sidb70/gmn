@@ -54,6 +54,15 @@ class LayerFactory:
             prev_layer = kwargs['prev_layer']   
         except KeyError:
             raise ValueError("Previous layer must be provided to create linear layer")
+        
+        linear_layer = NetworkLayer(layer_num=layer_num, layer_type=1)
+        # pseudo code:
+        # iterate through previous layer weights
+        # create a node for each weight
+        # create an edge between the node and the previous layer node
+        # set the edge weight to the weight value
+        # set the edge feature to the weight index
+        
         raise NotImplementedError("Linear layer creation not yet implemented")
     def create_norm_layer(self, 
                           layer: nn.BatchNorm1d, 
@@ -80,6 +89,26 @@ class LayerFactory:
             raise ValueError("Previous layer must be provided to create norm layer")
         
         raise NotImplementedError("Norm layer creation not yet implemented")
+    def create_conv_layer(self, layer: nn.Conv2d, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
+        '''
+        Create a convolutional layer
+        - Each node in the layer represents a neuron in the layer
+        - Each edge represents a connection between neurons
+        
+        Args:
+        - layer (nn.Conv2d): PyTorch convolutional layer
+        - layer_num (int): Layer number
+        - start_node_id (int): Starting node ID
+        - kwargs (dict): Additional arguments which must include the previous layer
+        
+        Returns:
+        - NetworkLayer: Convolutional layer
+        '''
+        try:
+            prev_layer = kwargs['prev_layer']
+        except KeyError:
+            raise ValueError("Previous layer must be provided to create conv layer")
+        raise NotImplementedError("Conv layer creation not yet implemented")
     def create_layer(self, layer: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a network layer from a PyTorch layer
@@ -100,6 +129,8 @@ class LayerFactory:
             return self.create_linear_layer(layer, layer_num, start_node_id, **kwargs)
         elif isinstance(layer, nn.BatchNorm1d):
             return self.create_norm_layer(layer, layer_num, start_node_id, **kwargs)
+        elif isinstance(layer, nn.Conv2d):
+            return self.create_conv_layer(layer, layer_num, start_node_id, **kwargs)
         else:
             raise ValueError(f"Layer type {type(layer)} not yet supported")
     
