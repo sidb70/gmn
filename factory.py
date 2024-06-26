@@ -138,6 +138,37 @@ class LayerFactory:
             prev_layer = kwargs['prev_layer']
         except KeyError:
             raise ValueError("Previous layer must be provided to create conv layer")
+        
+        conv_layer = NetworkLayer(layer_num=layer_num, layer_type=2)
+
+        #iterate through previous layer nodes:
+        for node in prev_layer.nodes:
+            i=0
+            #iterate through the channels of the current layer, one new node per channel
+            for channel in layer.out_channels:
+                channel_weights = layer.weight[channel]
+                channel_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
+                                                               rel_index=i, 
+                                                               node_type=NodeType.CONV))
+                conv_layer.add_node(channel_node)
+
+                j=0
+                #iterate through the weights of the current channel
+                for weight in channel_weights:
+                    edge = Edge(channel_node, node, EdgeFeatures(weight=weight,
+                                                                layer_num=layer_num,
+                                                                edge_type=EdgeType.CONV_WEIGHT,
+                                                                pos_encoding_x=j%layer.weight.shape[2], #TODO: check if this is correct
+                                                                pos_encoding_y=j//layer.weight.shape[2], #TODO: check if this is correct
+                                                                pos_encoding_depth=i))
+                    conv_layer.add_edge(edge)
+                    j+=1
+                i+=1
+            #TODO: add bias edges
+            
+        return conv_layer
+                
+
         raise NotImplementedError("Conv layer creation not yet implemented")
     def create_layer(self, layer: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
