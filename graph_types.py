@@ -110,5 +110,10 @@ class Node:
     node_id: int
     features: NodeFeatures
     def __init__(self, node_id: int, features: NodeFeatures) -> None:
+        '''
+        Node in the network
+        - Node ID is unique to the node
+        - Features contain information about the node
+        '''
         self.node_id = node_id
         self.features = features

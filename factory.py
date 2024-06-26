@@ -1,5 +1,14 @@
 import torch.nn as nn
-from graph_types import NetworkLayer, Node, NodeType, LayerType, NodeFeatures
+from graph_types import (
+    NetworkLayer, 
+    Node, 
+    NodeType, 
+    LayerType, 
+    NodeFeatures, 
+    EdgeFeatures, 
+    Edge,
+    EdgeType
+)
 
 
 class LayerFactory:
@@ -88,6 +97,27 @@ class LayerFactory:
         except KeyError:
             raise ValueError("Previous layer must be provided to create norm layer")
         
+        norm_layer = NetworkLayer(layer_num=layer_num, layer_type=LayerType.NORM)
+
+        gamma, beta = layer.weight, layer.bias
+        bn_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
+                                                   rel_index=0, 
+                                                   node_type=NodeType.NORM))
+        norm_layer.add_node(bn_node)
+        # connect to all nodes in the previous layer
+        i=0
+        for node in prev_layer.nodes:
+            gamma_edge = Edge(bn_node, node, EdgeFeatures(weight=gamma[i],
+                                                            layer_num=layer_num,
+                                                            edge_type=EdgeType.NORM_GAMMA))
+            beta_edge = Edge(bn_node, node, EdgeFeatures(weight=beta[i],
+                                                              layer_num=layer_num,
+                                                              edge_type=EdgeType.NORM_BETA))
+            norm_layer.add_edge(gamma_edge)
+            norm_layer.add_edge(beta_edge)
+            i+=1
+        return norm_layer
+            
         raise NotImplementedError("Norm layer creation not yet implemented")
     def create_conv_layer(self, layer: nn.Conv2d, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
