@@ -64,7 +64,7 @@ class LayerFactory:
         except KeyError:
             raise ValueError("Previous layer must be provided to create linear layer")
         
-        linear_layer = NetworkLayer(layer_num=layer_num, layer_type=1)
+        linear_layer = NetworkLayer(layer_num=layer_num, layer_type=LayerType.LINEAR)
         # pseudo code:
         # iterate through previous layer weights
         # create a node for each weight
@@ -144,25 +144,25 @@ class LayerFactory:
         
             #iterate through the channels of the current layer, one new node per channel
         for out_channel in range(layer.out_channels):
-            channel_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
+            out_channel_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
                                                                 rel_index=out_channel, 
                                                                 node_type=NodeType.CONV))
-            conv_layer.add_node(channel_node)
+            conv_layer.add_node(out_channel_node)
             #iterate through previous layer nodes:
-            for node in prev_layer.nodes:
+            for in_node in prev_layer.nodes:
                 kernel = layer.weight[out_channel]
-                j=0
+                j=0  # index of the weight in the kernel
                 #iterate through the weights of the current channel
                 weights = kernel.flatten()
                 for weight in weights:
                     num_edges+=1
-                    edge_tup = (node,channel_node)
+                    edge_tup = (in_node,out_channel_node)
                     edge = Edge(edge_tup, EdgeFeatures(weight=weight,
-                                                                layer_num=layer_num,
-                                                                edge_type=EdgeType.CONV_WEIGHT,
-                                                                pos_encoding_x=j%layer.weight.shape[2], 
-                                                                pos_encoding_y=j//layer.weight.shape[2], 
-                                                                pos_encoding_depth=out_channel))
+                                                        layer_num=layer_num,
+                                                        edge_type=EdgeType.CONV_WEIGHT,
+                                                        pos_encoding_x=j%layer.weight.shape[2], 
+                                                        pos_encoding_y=j//layer.weight.shape[2], 
+                                                        pos_encoding_depth=out_channel))
                     conv_layer.add_edge(edge)
                     j+=1
 
