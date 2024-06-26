@@ -96,8 +96,8 @@ class NetworkLayer(Graph):
     def get_node_ids(self) -> list[int]:
         return sorted([node.node_id for node in self.nodes])
     def __str__(self) -> str:
-        return f"Layer {self.layer_num}: {self.layer_type} with {len(self.nodes)} nodes and {len(self.edges)} edges"
-    def __repre__(self) -> str:
+        return f"Layer {self.layer_num}: Type: {self.layer_type} with {len(self.nodes)} nodes and {len(self.edges)} edges"
+    def __repr__(self) -> str:
         return self.__str__()
 class Edge:
     connection_nodes: Tuple[Node, Node]

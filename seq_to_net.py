@@ -20,18 +20,22 @@ def seq_to_net(seq: nn.Sequential) -> list[NetworkLayer]:
     # create first layer
     first_layer = layer_factory.create_layer(seq[0], layer_num=0, start_node_id=0)
     layers.append(first_layer)
-    print(first_layer)
-    return
-    for layer_num, module in enumerate(seq):
+    # print(first_layer)
+    layer_num=1
+    for module in seq:
         node_id = max(layers[-1].get_node_ids()) + 1
+        layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=node_id, prev_layer=layers[-1])
+        layers.append(layer)
+        layer_num += 1
+    
+    global_graph = Graph()
+
 
 
 
 def main():
     model = nn.Sequential(
-        nn.Linear(5, 10),
-        nn.BatchNorm1d(10),
-        nn.Linear(10, 10),
+        nn.Conv2d(3,4,3), # 4x3x3x3
     )
     seq_to_net(model)
 
