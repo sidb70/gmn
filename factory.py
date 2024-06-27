@@ -74,7 +74,7 @@ class LayerFactory:
         
         raise NotImplementedError("Linear layer creation not yet implemented")
     def create_norm_layer(self, 
-                          layer: nn.BatchNorm1d, 
+                          layer: nn.Module, 
                           layer_num: int, 
                           start_node_id: int, 
                           **kwargs) -> NetworkLayer:
@@ -84,7 +84,7 @@ class LayerFactory:
         - each edge has a feature indicating the normalization parameter (e.g. gamma, beta, )
 
         Args:
-        - layer (nn.BatchNorm1d): PyTorch normalization layer
+        - layer (nn.Module): PyTorch normalization layer
         - layer_num (int): Layer number
         - start_node_id (int): Starting node ID
         - kwargs (dict): Additional arguments which must include the previous layer
@@ -102,17 +102,24 @@ class LayerFactory:
         gamma, beta = layer.weight, layer.bias
         bn_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
                                                    rel_index=0, 
-                                                   node_type=NodeType.NORM))
+                                                   node_type=NodeType.NORM,))
         norm_layer.add_node(bn_node)
         # connect to all nodes in the previous layer
         i=0
         for node in prev_layer.nodes:
-            gamma_edge = Edge(bn_node, node, EdgeFeatures(weight=gamma[i],
+            edge_tup = (bn_node, node)
+            gamma_edge = Edge(edge_tup, EdgeFeatures(weight=gamma[i],
                                                             layer_num=layer_num,
-                                                            edge_type=EdgeType.NORM_GAMMA))
-            beta_edge = Edge(bn_node, node, EdgeFeatures(weight=beta[i],
+                                                            edge_type=EdgeType.NORM_GAMMA,
+                                                            pos_encoding_x=-1,
+                                                            pos_encoding_y=-1,
+                                                            pos_encoding_depth=-1))
+            beta_edge = Edge(edge_tup, EdgeFeatures(weight=beta[i],
                                                               layer_num=layer_num,
-                                                              edge_type=EdgeType.NORM_BETA))
+                                                              edge_type=EdgeType.NORM_BETA,
+                                                              pos_encoding_x=-1,
+                                                              pos_encoding_y=-1,
+                                                              pos_encoding_depth=-1))
             norm_layer.add_edge(gamma_edge)
             norm_layer.add_edge(beta_edge)
             i+=1
@@ -193,7 +200,7 @@ class LayerFactory:
             return self.create_input_layer(layer, **kwargs)
         elif isinstance(layer, nn.Linear):
             return self.create_linear_layer(layer, layer_num, start_node_id, **kwargs)
-        elif isinstance(layer, nn.BatchNorm1d):
+        elif isinstance(layer, nn.BatchNorm1d) or isinstance(layer, nn.BatchNorm2d):
             return self.create_norm_layer(layer, layer_num, start_node_id, **kwargs)
         elif isinstance(layer, nn.Conv2d):
             return self.create_conv_layer(layer, layer_num, start_node_id, **kwargs)

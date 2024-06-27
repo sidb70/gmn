@@ -158,25 +158,4 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-gmn_lim/encoders.py
-gmn_lim/graph_models.py
-gmn_lim/graph_pooling.py
-gmn_lim/grit.py
-gmn_lim/__MACOSX/._encoders.py
-gmn_lim/__MACOSX/._graph_construct
-gmn_lim/__MACOSX/._graph_models.py
-gmn_lim/__MACOSX/._graph_pooling.py
-gmn_lim/__MACOSX/._grit.py
-gmn_lim/__MACOSX/graph_construct/.___init__.py
-gmn_lim/__MACOSX/graph_construct/._constants.py
-gmn_lim/__MACOSX/graph_construct/._layers.py
-gmn_lim/__MACOSX/graph_construct/._model_arch_graph.py
-gmn_lim/__MACOSX/graph_construct/._net_makers.py
-gmn_lim/__MACOSX/graph_construct/._utils.py
-gmn_lim/graph_construct/__init__.py
-gmn_lim/graph_construct/constants.py
-gmn_lim/graph_construct/layers.py
-gmn_lim/graph_construct/model_arch_graph.py
-gmn_lim/graph_construct/net_makers.py
-gmn_lim/graph_construct/test
-gmn_lim/graph_construct/utils.py
+gmn_lim/
