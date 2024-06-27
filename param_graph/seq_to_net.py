@@ -1,12 +1,12 @@
 from factory import LayerFactory
 import torch.nn as nn
 import networkx as nx
-from networkx import MultiGraph
+from graph_types import ParameterGraph
 import matplotlib.pyplot as plt
 from pprint import pprint
+import random
 
-
-def seq_to_net(seq: nn.Sequential) -> MultiGraph:
+def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     '''
     Convert a PyTorch sequential model to a list of NetworkLayer objects
 
@@ -14,12 +14,12 @@ def seq_to_net(seq: nn.Sequential) -> MultiGraph:
     - seq (nn.Sequential): PyTorch sequential model
 
     Returns:
-    - list[NetworkLayer]: List of NetworkLayer objects
+    - MultiDiGraph: Global graph
     '''
     layer_factory = LayerFactory()
     layers = []
     # create first layer
-    first_layer = layer_factory.create_layer(seq[0], layer_num=0, start_node_id=0)
+    first_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
     layers.append(first_layer)
     # print(first_layer)
     layer_num=1
@@ -28,7 +28,7 @@ def seq_to_net(seq: nn.Sequential) -> MultiGraph:
         layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=node_id, prev_layer=layers[-1])
         layers.append(layer)
         layer_num += 1
-    global_graph = MultiGraph()
+    global_graph = ParameterGraph()
     for layer in layers:
         for node in layer.get_nodes():
             global_graph.add_node(node.node_id, node_obj=node)
@@ -38,19 +38,20 @@ def seq_to_net(seq: nn.Sequential) -> MultiGraph:
     return global_graph
 
 
-def draw_graph(graph: MultiGraph):
+def draw_graph(graph: ParameterGraph):
     '''
     Draw the global graph
 
     Args:
-    - graph (MultiGraph): Global graph
+    - graph (MultiDiGraph): Global graph
     '''
     pos = nx.multipartite_layout(graph)
     nx.draw_networkx_nodes(graph, pos)
     nx.draw_networkx_labels(graph, pos)
     i = 0
     for u, v, data in graph.edges(data=True):
-        nx.draw_networkx_edges(graph, pos, edgelist=[(u, v)], connectionstyle=f'arc3,rad={0.1*i % 1.0}')
+        rad = 0.05*i % 1.0 * random.choice([-1, 1])
+        nx.draw_networkx_edges(graph, pos, edgelist=[(u, v)], connectionstyle=f'arc3,rad={rad}')
         i += 1
     plt.show()
 
@@ -64,7 +65,9 @@ def main():
     pprint("Nodes:")
     pprint([node[1]['node_obj'] for node in global_graph.nodes(data=True)])
     print("Total edges: ", global_graph.number_of_edges())
-    draw_graph(global_graph)
+    #draw_graph(global_graph)
+
+    print(global_graph.to_json())
 if __name__ == '__main__':
     main()
 

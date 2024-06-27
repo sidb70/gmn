@@ -17,7 +17,7 @@ class LayerFactory:
     '''
     def __init__(self) -> None:
         return
-    def create_input_layer(self, layer: nn.Module, **kwargs) -> NetworkLayer:
+    def create_input_layer(self, module: nn.Module, **kwargs) -> NetworkLayer:
         '''
         Create the input layer of the network
         - The input layer is the first layer of the network
@@ -30,12 +30,12 @@ class LayerFactory:
         Returns:
         - NetworkLayer: Input layer
         '''
-        if type(layer) == nn.Linear:
-            num_input_nodes = layer.in_features
-        elif type(layer) == nn.Conv2d:
-            num_input_nodes = layer.in_channels
+        if type(module) == nn.Linear:
+            num_input_nodes = module.in_features
+        elif type(module) == nn.Conv2d:
+            num_input_nodes = module.in_channels
         else:
-            raise ValueError(f"Layer type {type(layer)} not yet supported")
+            raise ValueError(f"Layer type {type(module)} not yet supported")
         input_layer = NetworkLayer(layer_num=0, layer_type=LayerType.INPUT)
         for i in range(num_input_nodes):
             node_features = NodeFeatures(layer_num=0, 
@@ -74,7 +74,7 @@ class LayerFactory:
         
         raise NotImplementedError("Linear layer creation not yet implemented")
     def create_norm_layer(self, 
-                          layer: nn.Module, 
+                          module: nn.Module, 
                           layer_num: int, 
                           start_node_id: int, 
                           **kwargs) -> NetworkLayer:
@@ -99,7 +99,7 @@ class LayerFactory:
         
         norm_layer = NetworkLayer(layer_num=layer_num, layer_type=LayerType.NORM)
 
-        gamma, beta = layer.weight, layer.bias
+        gamma, beta = module.weight, module.bias
         bn_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
                                                    rel_index=0, 
                                                    node_type=NodeType.NORM,))
@@ -125,8 +125,7 @@ class LayerFactory:
             i+=1
         return norm_layer
             
-        raise NotImplementedError("Norm layer creation not yet implemented")
-    def create_conv_layer(self, layer: nn.Conv2d, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
+    def create_conv_layer(self, module: nn.Conv2d, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a convolutional layer
         - Each node in the layer represents a neuron in the layer
@@ -150,7 +149,7 @@ class LayerFactory:
 
         
             #iterate through the channels of the current layer, one new node per channel
-        for out_channel in range(layer.out_channels):
+        for out_channel in range(module.out_channels):
             node_id = start_node_id + out_channel
             out_channel_node = Node(node_id, NodeFeatures(layer_num=layer_num, 
                                                                 rel_index=out_channel, 
@@ -158,7 +157,7 @@ class LayerFactory:
             conv_layer.add_node(out_channel_node)
             #iterate through previous layer nodes:
             for in_node in prev_layer.nodes:
-                kernel = layer.weight[out_channel]
+                kernel = module.weight[out_channel]
                 j=0  # index of the weight in the kernel
                 #iterate through the weights of the current channel
                 weights = kernel.flatten()
@@ -167,8 +166,8 @@ class LayerFactory:
                     edge = Edge(edge_tup, EdgeFeatures(weight=weight,
                                                         layer_num=layer_num,
                                                         edge_type=EdgeType.CONV_WEIGHT,
-                                                        pos_encoding_x=j%layer.weight.shape[2], 
-                                                        pos_encoding_y=j//layer.weight.shape[2], 
+                                                        pos_encoding_x=j%module.weight.shape[2], 
+                                                        pos_encoding_y=j//module.weight.shape[2], 
                                                         pos_encoding_depth=out_channel))
                     conv_layer.add_edge(edge)
                     j+=1
@@ -182,7 +181,7 @@ class LayerFactory:
                 
 
         raise NotImplementedError("Conv layer creation not yet implemented")
-    def create_layer(self, layer: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
+    def create_layer(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a network layer from a PyTorch layer
         - Dispatches to the appropriate layer creation method based on the layer type
@@ -197,13 +196,13 @@ class LayerFactory:
         - NetworkLayer: Network layer
         '''
         if layer_num==0:
-            return self.create_input_layer(layer, **kwargs)
-        elif isinstance(layer, nn.Linear):
-            return self.create_linear_layer(layer, layer_num, start_node_id, **kwargs)
-        elif isinstance(layer, nn.BatchNorm1d) or isinstance(layer, nn.BatchNorm2d):
-            return self.create_norm_layer(layer, layer_num, start_node_id, **kwargs)
-        elif isinstance(layer, nn.Conv2d):
-            return self.create_conv_layer(layer, layer_num, start_node_id, **kwargs)
+            return self.create_input_layer(module, **kwargs)
+        elif isinstance(module, nn.Linear):
+            return self.create_linear_layer(module, layer_num, start_node_id, **kwargs)
+        elif isinstance(module, nn.BatchNorm1d) or isinstance(module, nn.BatchNorm2d):
+            return self.create_norm_layer(module, layer_num, start_node_id, **kwargs)
+        elif isinstance(module, nn.Conv2d):
+            return self.create_conv_layer(module, layer_num, start_node_id, **kwargs)
         else:
-            raise ValueError(f"Layer type {type(layer)} not yet supported")
+            raise ValueError(f"Layer type {type(module)} not yet supported")
     

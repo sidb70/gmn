@@ -2,7 +2,8 @@ from enum import Enum
 import networkx as nx
 from pydantic import BaseModel
 from typing import Tuple
-
+import json
+import os
 # ----------------- Enums -----------------
 
 class LayerType(Enum):
@@ -48,6 +49,19 @@ class NodeFeatures(BaseModel):
     layer_num: int # layer number in the network
     rel_index: int # index of the node within the layer
     node_type: NodeType 
+    def serialize(self) -> dict:
+        '''
+        Serialize the node features into a dictionary
+
+        Returns:
+        - dict: Serialized node features
+        '''
+        ser = {
+            'layer_num': self.layer_num,
+            'rel_index': self.rel_index,
+            'node_type': self.node_type.value
+        }
+        return ser
 
 class EdgeFeatures(BaseModel):
     weight: float 
@@ -56,13 +70,29 @@ class EdgeFeatures(BaseModel):
     pos_encoding_x: int # x positional encoding of this parameter within the conv layer
     pos_encoding_y: int # y positional encoding of this parameter within the conv layer
     pos_encoding_depth: int # which layer of the conv cube this parameter is in
+    def serialize(self) -> dict:
+        '''
+        Serialize the edge features into a dictionary
+
+        Returns:
+        - dict: Serialized edge features
+        '''
+        ser = {
+            'weight': self.weight,
+            'layer_num': self.layer_num,
+            'edge_type': self.edge_type.value,
+            'pos_encoding_x': self.pos_encoding_x,
+            'pos_encoding_y': self.pos_encoding_y,
+            'pos_encoding_depth': self.pos_encoding_depth
+        }
+        return ser
 # ----------------- Base Classes -----------------
-class Graph: pass
-class Layer(Graph): pass
+class ParameterGraph: pass
+class Layer(ParameterGraph): pass
 class Node: pass
 class Edge: pass
 
-class Graph(nx.Graph):
+class ParameterGraph(nx.MultiDiGraph):
     '''
     Base class for parameter graph
     - Inherits from networkx Graph
@@ -70,12 +100,34 @@ class Graph(nx.Graph):
     '''
     def __init__(self) -> None:
         super().__init__()
-    def add_node(self, node: Node) -> None:
-        super().add_node(node.node_id, node)
-    def add_edge(self, edge: Edge) -> None:
-        super().add_edge(edge.node1.node_id, edge.node2.node_id, edge)
-    
-class NetworkLayer(Graph):
+    def serialize(self) -> dict:
+        '''
+        Serialize the graph into a dictionary
+        '''
+        nodes = {node_id: node_obj.serialize() for node_id, node_obj in self.nodes(data='node_obj')}
+        edges = {f"{u}->{v}": edge_obj.serialize() for u, v, edge_obj in self.edges(data='edge_obj')}
+        ser = {
+            'nodes': nodes,
+            'edges': edges
+        }
+        return ser
+    def to_json(self) -> str:
+        '''
+        Serialize the graph into a JSON string
+        '''
+        return json.dumps(self.serialize())
+    def save(self, path: str) -> None:
+        '''
+        Save the graph to a JSON file
+
+        Args:
+        - path (str): Path to save the file
+        '''
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+        with open(path, 'w') as f:
+            json.dump(self.serialize(), f)
+class NetworkLayer(ParameterGraph):
     '''
     Represents a layer in the network
     - Contains nodes and edges
@@ -109,6 +161,15 @@ class Edge:
     def __init__(self, connection_nodes: tuple[Node], features: EdgeFeatures) -> None:
         self.node1, self.node2 = connection_nodes
         self.features = features
+    def serialize(self) -> dict:
+        '''
+        Serialize the edge into a dictionary
+        '''
+        ser = {
+            'connection_nodes': f"{self.node1.node_id}->{self.node2.node_id}",
+            'features': self.features.serialize()
+        }
+        return ser
     def __str__(self) -> str:
         return f"Edge from {self.node1.node_id} to {self.node2.node_id} with features {self.features}"
     def __repr__(self) -> str:
@@ -125,7 +186,27 @@ class Node:
         '''
         self.node_id = node_id
         self.features = features
+    def serialize(self) -> dict:
+        '''
+        Serialize the node into a dictionary
+        '''
+        ser = {
+            'node_id': self.node_id,
+            'features': self.features.serialize()
+        }
+        return ser
+
     def __str__(self) -> str:
         return f"Node {self.node_id} with features {self.features}"
     def __repr__(self) -> str:
         return self.__str__()
+    
+if __name__=='__main__':
+    testnode = Node(node_id=0, features=NodeFeatures(layer_num=0, rel_index=0, node_type=NodeType.INPUT))
+    testedge = Edge(connection_nodes=(testnode, testnode), features=EdgeFeatures(weight=0.5, layer_num=0, edge_type=EdgeType.LIN_WEIGHT, pos_encoding_x=0, pos_encoding_y=0, pos_encoding_depth=0))
+    # serialize
+
+    node_json = json.dumps(testnode.serialize())
+    edge_json = json.dumps(testedge.serialize())
+    print("Node serialized: ",node_json)    
+    print("Edge serialized: ",edge_json)
