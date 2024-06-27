@@ -144,7 +144,8 @@ class LayerFactory:
         
             #iterate through the channels of the current layer, one new node per channel
         for out_channel in range(layer.out_channels):
-            out_channel_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
+            node_id = start_node_id + out_channel
+            out_channel_node = Node(node_id, NodeFeatures(layer_num=layer_num, 
                                                                 rel_index=out_channel, 
                                                                 node_type=NodeType.CONV))
             conv_layer.add_node(out_channel_node)
@@ -155,7 +156,6 @@ class LayerFactory:
                 #iterate through the weights of the current channel
                 weights = kernel.flatten()
                 for weight in weights:
-                    num_edges+=1
                     edge_tup = (in_node,out_channel_node)
                     edge = Edge(edge_tup, EdgeFeatures(weight=weight,
                                                         layer_num=layer_num,

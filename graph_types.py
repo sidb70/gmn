@@ -93,6 +93,10 @@ class NetworkLayer(Graph):
         self.nodes.add(node)
     def add_edge(self, edge: Edge) -> None:
         self.edges.add(edge)
+    def get_nodes(self) -> set[Node]:
+        return self.nodes
+    def get_edges(self) -> set[Edge]:
+        return self.edges
     def get_node_ids(self) -> list[int]:
         return sorted([node.node_id for node in self.nodes])
     def __str__(self) -> str:
@@ -105,6 +109,10 @@ class Edge:
     def __init__(self, connection_nodes: tuple[Node], features: EdgeFeatures) -> None:
         self.node1, self.node2 = connection_nodes
         self.features = features
+    def __str__(self) -> str:
+        return f"Edge from {self.node1.node_id} to {self.node2.node_id} with features {self.features}"
+    def __repr__(self) -> str:
+        return self.__str__()
 
 class Node:
     node_id: int
@@ -117,3 +125,7 @@ class Node:
         '''
         self.node_id = node_id
         self.features = features
+    def __str__(self) -> str:
+        return f"Node {self.node_id} with features {self.features}"
+    def __repr__(self) -> str:
+        return self.__str__()
