@@ -68,6 +68,7 @@ def main():
     #draw_graph(global_graph)
 
     print(global_graph.to_json())
+    global_graph.save('/Users/sidb/Development/gmn/graph-app/public/test.json')
 if __name__ == '__main__':
     main()
 

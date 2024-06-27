@@ -104,11 +104,11 @@ class ParameterGraph(nx.MultiDiGraph):
         '''
         Serialize the graph into a dictionary
         '''
-        nodes = {node_id: node_obj.serialize() for node_id, node_obj in self.nodes(data='node_obj')}
-        edges = {f"{u}->{v}": edge_obj.serialize() for u, v, edge_obj in self.edges(data='edge_obj')}
+        nodes = [{'id': node_id, 'features': node_obj.features.serialize()} for node_id, node_obj in self.nodes(data='node_obj')]
+        edges = [{'source': source, 'target': target, 'features': edge_obj.features.serialize()} for source, target, edge_obj in self.edges(data='edge_obj')]
         ser = {
             'nodes': nodes,
-            'edges': edges
+            'links': edges
         }
         return ser
     def to_json(self) -> str:
@@ -123,7 +123,7 @@ class ParameterGraph(nx.MultiDiGraph):
         Args:
         - path (str): Path to save the file
         '''
-        if not os.path.exists(os.path.dirname(path)):
+        if os.path.dirname(path) and not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         with open(path, 'w') as f:
             json.dump(self.serialize(), f)
@@ -166,7 +166,7 @@ class Edge:
         Serialize the edge into a dictionary
         '''
         ser = {
-            'connection_nodes': f"{self.node1.node_id}->{self.node2.node_id}",
+            'connection_nodes': (self.node1.node_id, self.node2.node_id), 
             'features': self.features.serialize()
         }
         return ser

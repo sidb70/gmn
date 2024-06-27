@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 gmn_lim/
 *.DS_Store
+*.json
