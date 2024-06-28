@@ -67,9 +67,9 @@ class EdgeFeatures(BaseModel):
     weight: float 
     layer_num: int # layer number in the network
     edge_type: EdgeType
-    pos_encoding_x: int # x positional encoding of this parameter within the conv layer
-    pos_encoding_y: int # y positional encoding of this parameter within the conv layer
-    pos_encoding_depth: int # which layer of the conv cube this parameter is in
+    pos_encoding_x: int = 0 # x positional encoding of this parameter within the conv layer
+    pos_encoding_y: int = 0 # y positional encoding of this parameter within the conv layer
+    pos_encoding_depth: int = 0 # which layer of the conv cube this parameter is in
     def serialize(self) -> dict:
         '''
         Serialize the edge features into a dictionary

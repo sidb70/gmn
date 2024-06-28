@@ -1,10 +1,11 @@
 from factory import LayerFactory
 import torch.nn as nn
 import networkx as nx
-from graph_types import ParameterGraph
+from graph_types import ParameterGraph, NetworkLayer
 import matplotlib.pyplot as plt
 from pprint import pprint
 import random
+from typing import List
 
 def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     '''
@@ -17,7 +18,7 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     - MultiDiGraph: Global graph
     '''
     layer_factory = LayerFactory()
-    layers = []
+    layers: List[NetworkLayer] = []
     # create first layer
     first_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
     layers.append(first_layer)

@@ -60,19 +60,31 @@ class LayerFactory:
         - NetworkLayer: Linear layer
         '''
         try:
-            prev_layer = kwargs['prev_layer']   
+            prev_layer: NetworkLayer = kwargs['prev_layer']   
         except KeyError:
             raise ValueError("Previous layer must be provided to create linear layer")
         
         linear_layer = NetworkLayer(layer_num=layer_num, layer_type=LayerType.LINEAR)
-        # pseudo code:
-        # iterate through previous layer weights
-        # create a node for each weight
-        # create an edge between the node and the previous layer node
-        # set the edge weight to the weight value
-        # set the edge feature to the weight index
+
+        for i, weights in enumerate(layer.weight.data):
+            # weights corresponds to the weights for each input feature for the ith output neuron
+            node_id = start_node_id + i
+            node = Node(
+                node_id=node_id, 
+                features=NodeFeatures(layer_num=layer_num, rel_index=-1, node_type=NodeType.LINEAR)
+            )
+            linear_layer.add_node(node)
+
+            for in_node, weight in zip(prev_layer.nodes, weights):
+
+                edge = Edge(
+                    (in_node, node), 
+                    EdgeFeatures(weight=weight, layer_num=layer_num, edge_type=EdgeType.LIN_WEIGHT)
+                )
+                linear_layer.add_edge(edge)
         
-        raise NotImplementedError("Linear layer creation not yet implemented")
+        return linear_layer
+        
     def create_norm_layer(self, 
                           module: nn.Module, 
                           layer_num: int, 
