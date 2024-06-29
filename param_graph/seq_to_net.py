@@ -5,6 +5,7 @@ from graph_types import ParameterGraph, NetworkLayer
 import matplotlib.pyplot as plt
 from pprint import pprint
 import random
+from visualize import draw_graph
 from typing import List
 
 def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
@@ -38,37 +39,25 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
             global_graph.add_edge(edge.node1.node_id, edge.node2.node_id, edge_obj=edge)
     return global_graph
 
-
-def draw_graph(graph: ParameterGraph):
-    '''
-    Draw the global graph
-
-    Args:
-    - graph (MultiDiGraph): Global graph
-    '''
-    pos = nx.multipartite_layout(graph)
-    nx.draw_networkx_nodes(graph, pos)
-    nx.draw_networkx_labels(graph, pos)
-    i = 0
-    for u, v, data in graph.edges(data=True):
-        rad = 0.05*i % 1.0 * random.choice([-1, 1])
-        nx.draw_networkx_edges(graph, pos, edgelist=[(u, v)], connectionstyle=f'arc3,rad={rad}')
-        i += 1
-    plt.show()
-
-
 def main():
     model = nn.Sequential(
-        nn.Conv2d(3,4,3), # 4x3x3x3
-        nn.BatchNorm2d(4),
+        nn.Conv2d(3,4,3), 
+        nn.BatchNorm2d(8),
+        nn.Conv2d(8,16,3),
+        nn.BatchNorm2d(16),
+        nn.Conv2d(16,32,3),
+        nn.BatchNorm2d(32),
+        nn.Conv2d(32,32,3),
+        nn.BatchNorm2d(32),
+        nn.Conv2d(32,16,3),
     )
     global_graph = seq_to_net(model)
-    pprint("Nodes:")
-    pprint([node[1]['node_obj'] for node in global_graph.nodes(data=True)])
-    print("Total edges: ", global_graph.number_of_edges())
-    #draw_graph(global_graph)
+    # pprint("Nodes:")
+    # pprint(sorted([node[1]['node_obj'] for node in global_graph.nodes(data=True)], key=lambda x: x.node_id))
+    # print("Total edges: ", global_graph.number_of_edges())
+    draw_graph(global_graph, dim='3d')
 
-    print(global_graph.to_json())
+    #print(global_graph.to_json())
     global_graph.save('/Users/sidb/Development/gmn/graph-app/public/test.json')
 if __name__ == '__main__':
     main()
