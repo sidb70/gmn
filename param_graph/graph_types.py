@@ -44,6 +44,15 @@ class EdgeType(Enum):
     NORM_GAMMA = 5
     NORM_BETA = 6
 
+PARAMETRIC_LAYERS = [
+    LayerType.LINEAR,
+    LayerType.CONV,
+]
+NON_PARAMETRIC_LAYERS = [
+    LayerType.NORM,
+    LayerType.RELU
+
+]
 # ----------------- Features -----------------
 class NodeFeatures(BaseModel):
     layer_num: int # layer number in the network

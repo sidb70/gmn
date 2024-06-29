@@ -7,7 +7,9 @@ from graph_types import (
     NodeFeatures, 
     EdgeFeatures, 
     Edge,
-    EdgeType
+    EdgeType,
+    PARAMETRIC_LAYERS,
+    NON_PARAMETRIC_LAYERS
 )
 
 
@@ -209,7 +211,17 @@ class LayerFactory:
         '''
         if layer_num==0:
             return self.create_input_layer(module, **kwargs)
-        elif isinstance(module, nn.Linear):
+        
+        prev_layers = kwargs.get('prev_layers', None)
+        prev_layer = prev_layers[-1]
+        i=-2
+        while prev_layer.layer_type in NON_PARAMETRIC_LAYERS and i>=-len(prev_layers):
+            prev_layer = prev_layers[i]
+            i-=1
+        if prev_layer in NON_PARAMETRIC_LAYERS and layer_num>1:
+            raise ValueError("No previous parametric layer found")
+        kwargs['prev_layer'] = prev_layer
+        if isinstance(module, nn.Linear):
             return self.create_linear_layer(module, layer_num, start_node_id, **kwargs)
         elif isinstance(module, nn.BatchNorm1d) or isinstance(module, nn.BatchNorm2d):
             return self.create_norm_layer(module, layer_num, start_node_id, **kwargs)
