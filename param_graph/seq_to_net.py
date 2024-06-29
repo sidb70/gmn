@@ -26,6 +26,8 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     # print(first_layer)
     layer_num=1
     for module in seq:
+        if isinstance(module, nn.Flatten):
+            continue
         node_id = max(layers[-1].get_node_ids()) + 1
         layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=node_id, prev_layers=layers)
         layers.append(layer)
@@ -41,10 +43,12 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
 
 def main():
     model = nn.Sequential(
-        nn.Conv2d(1,4,3),
+        nn.Conv2d(3, 4, 3),
         nn.BatchNorm2d(4),
-        nn.Conv2d(4,4,3),
-        nn.BatchNorm2d(4),
+        nn.Conv2d(4, 4, 3),
+        nn.Flatten(),
+        nn.Linear(4*27*27, 10),
+        nn.Linear(10, 2)
 
     )
     global_graph = seq_to_net(model)
