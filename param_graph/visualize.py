@@ -48,20 +48,8 @@ def draw_3d_graph(graph: nx.Graph):
     
     # Create a color map for edge types
     unique_edge_types = set(data['edge_obj'].features.edge_type for _, _, data in graph.edges(data=True))
-    #color_map = px.colors.qualitative.Plotly
-    # darker colors
-    color_map = [
-    '#2E3440',
-    '#3B4252',
-    '#434C5E',
-    '#4C566A',
-    '#5E81AC',
-    '#81A1C1',
-    '#88C0D0',
-    '#B48EAD',
-    '#A3BE8C',
-    '#BF616A'
-]
+    color_map = px.colors.qualitative.D3_r
+   
     edge_type_to_color = {edge_type: color_map[i % len(color_map)] for i, edge_type in enumerate(unique_edge_types)}
     edges = {}
     for u, v, data in graph.edges(data=True):
