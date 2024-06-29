@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random
 import igraph as ig
 # chart studip plotly
-import chart_studio.plotly as py
+import plotly.express as px
 import plotly.graph_objs as go
 import numpy as np
 
@@ -26,25 +26,59 @@ def draw_nx_graph(graph: ParameterGraph):
         i += 1
     plt.show()
 
-def draw_3d_graph(graph: ParameterGraph):
+import networkx as nx
+import plotly.graph_objs as go
+import igraph as ig
+import numpy as np
+import plotly.express as px
+
+def draw_3d_graph(graph: nx.Graph):
     num_links = graph.number_of_edges()
     num_nodes = graph.number_of_nodes()
     print("Number of links: ", num_links)
     print("Number of nodes: ", num_nodes)
 
-    # Create a MultiDiGraph to handle multi-edges
     G = ig.Graph(directed=True)
     G.add_vertices(graph.number_of_nodes())
 
-    # Add edges with their multiplicities
-    edge_counts = {}
-    for u, v in graph.edges():
-        if (u, v) in edge_counts:
-            edge_counts[(u, v)] += 1
-        else:
-            edge_counts[(u, v)] = 1
+    # edge_counts = {}
+    # edge_types = []
+    # edge_colors = []
+    
+    
+    # Create a color map for edge types
+    unique_edge_types = set(data['edge_obj'].features.edge_type for _, _, data in graph.edges(data=True))
+    #color_map = px.colors.qualitative.Plotly
+    # darker colors
+    color_map = [
+    '#2E3440',
+    '#3B4252',
+    '#434C5E',
+    '#4C566A',
+    '#5E81AC',
+    '#81A1C1',
+    '#88C0D0',
+    '#B48EAD',
+    '#A3BE8C',
+    '#BF616A'
+]
+    edge_type_to_color = {edge_type: color_map[i % len(color_map)] for i, edge_type in enumerate(unique_edge_types)}
+    edges = {}
+    for u, v, data in graph.edges(data=True):
         G.add_edge(u, v)
+        edge_type = data['edge_obj'].features.edge_type
+        edgename = str(u) + '-' + str(v)
+        if edges.get(edgename, None) is None:
+            edges[edgename] = {'count': 0, 'type': [], 'colors':[]}
+        if edge_type.value!=3:
+            kga=3
+        edges[edgename]['count'] += 1
+        edges[edgename]['type'].append(edge_type)
+        edges[edgename]['colors'].append(edge_type_to_color[edge_type])
 
+        # edge_types.append(edge_type)
+        # edge_colors.append(edge_type_to_color[edge_type])
+    # print(set(edge_types))
     labels = []
     group = []
     for node in graph.nodes(data=True):
@@ -59,96 +93,102 @@ def draw_3d_graph(graph: ParameterGraph):
     Xe = []
     Ye = []
     Ze = []
+    edge_colors_expanded = []
 
-    # Create curved edges for multi-edges
-    for (u, v), count in edge_counts.items():
+    # for (u, v), count in edge_counts.items():
+    for edgename, vals in edges.items():
+        u,v = edgename.split('-')
+        u = int(u)
+        v = int(v)
+        count = vals['count']
         if count == 1:
-            # Single edge
             Xe += [layt[u][0], layt[v][0], None]
             Ye += [layt[u][1], layt[v][1], None]
             Ze += [layt[u][2], layt[v][2], None]
+            edge_color = vals['colors'][0]
+            edge_colors_expanded += [edge_color] * 3
         else:
-            # Multi-edge: create curved lines
-            for i in range(count):
-                # Calculate control point for Bezier curve
+            for i in range(len(vals['colors'])):
                 mid_x = (layt[u][0] + layt[v][0]) / 2
                 mid_y = (layt[u][1] + layt[v][1]) / 2
                 mid_z = (layt[u][2] + layt[v][2]) / 2
                 
-                # Offset the control point
-                offset = 0.1 * (i + 1)  # Adjust this value to change curve intensity
+                offset = 0.1 * (i + 1)
                 ctrl_x = mid_x + offset * (layt[v][1] - layt[u][1])
                 ctrl_y = mid_y - offset * (layt[v][0] - layt[u][0])
                 ctrl_z = mid_z + offset
                 
-                # Create Bezier curve points
                 t = np.linspace(0, 1, 20)
                 x = (1-t)**2 * layt[u][0] + 2*(1-t)*t * ctrl_x + t**2 * layt[v][0]
                 y = (1-t)**2 * layt[u][1] + 2*(1-t)*t * ctrl_y + t**2 * layt[v][1]
                 z = (1-t)**2 * layt[u][2] + 2*(1-t)*t * ctrl_z + t**2 * layt[v][2]
-                
-                Xe += list(x) + [None]
-                Ye += list(y) + [None]
-                Ze += list(z) + [None]
+
+                Xe.extend(x)
+                Ye.extend(y)
+                Ze.extend(z)
+                edge_color = vals['colors'][i]
+                #hard code light gray for now
+                # edge_color = 'rgb(211,211,211)' 
+                edge_colors_expanded.extend([edge_color] * len(x))
 
     print("adding traces")
-    trace1=go.Scatter3d(x=Xe,
-               y=Ye,
-               z=Ze,
-               mode='lines',
-               line=dict(color='rgb(125,125,125)', width=1),
-               hoverinfo='none'
-               )
-    print("Made trace 1")
-    trace2=go.Scatter3d(x=Xn,
-                y=Yn,
-                z=Zn,
-                mode='markers',
-                name='actors',
-                marker=dict(symbol='circle',
-                                size=6,
-                                color=group,
-                                colorscale='Viridis',
-                                line=dict(color='rgb(50,50,50)', width=0.5)
-                                ),
-                text=labels,
-                hoverinfo='text'
-                )
-    print("Made trace 2")
-    axis=dict(showbackground=False,
-            showline=False,
-            zeroline=False,
-            showgrid=False,
-            showticklabels=False,
-            title=''
-            )
-    print("Made axis")
-    layout = go.Layout(
-         title="",
-         width=1000,
-         height=1000,
-         showlegend=False,
-         scene=dict(
-             xaxis=dict(axis),
-             yaxis=dict(axis),
-             zaxis=dict(axis),
-        ),
-     margin=dict(
-        t=100
-    ),
-    hovermode='closest',
     
-        annotations=[])
-    print("Made layout")
+    edge_trace = go.Scatter3d(x=Xe,
+                              y=Ye,
+                              z=Ze,
+                              mode='lines',
+                              line=dict(color=edge_colors_expanded, width=2),
+                              hoverinfo='none'
+                              )
 
-    data=[trace1, trace2]
-    fig=go.Figure(data=data, layout=layout)
-    print("Made figure")
+    node_trace = go.Scatter3d(x=Xn,
+                              y=Yn,
+                              z=Zn,
+                              mode='markers',
+                              name='actors',
+                              marker=dict(symbol='circle',
+                                          size=6,
+                                          color=group,
+                                          colorscale='Viridis',
+                                          line=dict(color='rgb(50,50,50)', width=0.5)
+                                          ),
+                              text=labels,
+                              hoverinfo='text'
+                              )
 
-    #py.iplot(fig, filename='Les-Miserables')
+    # Create legend traces
+    legend_traces = []
+    for edge_type, color in edge_type_to_color.items():
+        legend_trace = go.Scatter3d(x=[None], y=[None], z=[None], mode='lines',
+                                    name=f'Edge Type: {edge_type}',
+                                    line=dict(color=color, width=2),
+                                    showlegend=True)
+        legend_traces.append(legend_trace)
+
+    axis = dict(showbackground=False,
+                showline=False,
+                zeroline=False,
+                showgrid=False,
+                showticklabels=False,
+                title='')
+
+    layout = go.Layout(
+        title="3D Network Visualization",
+        width=1000,
+        height=1000,
+        showlegend=True,
+        scene=dict(
+            xaxis=dict(axis),
+            yaxis=dict(axis),
+            zaxis=dict(axis),
+        ),
+        margin=dict(t=100),
+        hovermode='closest',
+    )
+
+    fig = go.Figure(data=[edge_trace, node_trace] + legend_traces, layout=layout)
     fig.show()
     print("Done")
-
 
 
 def draw_graph(graph: ParameterGraph, dim: str = '2d'):

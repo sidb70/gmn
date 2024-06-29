@@ -41,20 +41,18 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
 
 def main():
     model = nn.Sequential(
-        nn.Conv2d(3,4,3), 
+        nn.Conv2d(3,4,3),
+        nn.BatchNorm2d(4),
+        nn.Conv2d(4,8,3),
         nn.BatchNorm2d(8),
-        nn.Conv2d(8,16,3),
-        nn.BatchNorm2d(16),
-        nn.Conv2d(16,32,3),
-        nn.BatchNorm2d(32),
-        nn.Conv2d(32,32,3),
-        nn.BatchNorm2d(32),
-        nn.Conv2d(32,16,3),
+
     )
     global_graph = seq_to_net(model)
     # pprint("Nodes:")
     # pprint(sorted([node[1]['node_obj'] for node in global_graph.nodes(data=True)], key=lambda x: x.node_id))
     # print("Total edges: ", global_graph.number_of_edges())
+    pprint("Edges:")
+    pprint( [edge for edge in global_graph.edges(data=True) if edge[2]['edge_obj'].features.edge_type.value!=3])
     draw_graph(global_graph, dim='3d')
 
     #print(global_graph.to_json())
