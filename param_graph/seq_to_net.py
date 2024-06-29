@@ -57,7 +57,8 @@ def main():
     # print("Total edges: ", global_graph.number_of_edges())
     pprint("Edges:")
     pprint( [edge for edge in global_graph.edges(data=True) if edge[2]['edge_obj'].features.edge_type.value!=3])
-    draw_graph(global_graph, dim='3d')
+    sequential_title = ',\n'.join([str(type(module)).split('.')[-1].strip(">'") for module in model])
+    draw_graph(global_graph, dim='3d',title=sequential_title)
 
     #print(global_graph.to_json())
     global_graph.save('/Users/sidb/Development/gmn/graph-app/public/test.json')

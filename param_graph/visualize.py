@@ -9,7 +9,8 @@ import plotly.graph_objs as go
 import numpy as np
 
 
-def draw_nx_graph(graph: ParameterGraph):
+
+def draw_nx_graph(graph: ParameterGraph, title: str):
     '''
     Draw the global graph
 
@@ -24,15 +25,11 @@ def draw_nx_graph(graph: ParameterGraph):
         rad = 0.05*i % 1.0 * random.choice([-1, 1])
         nx.draw_networkx_edges(graph, pos, edgelist=[(u, v)], connectionstyle=f'arc3,rad={rad}')
         i += 1
+    plt.title(title)
     plt.show()
 
-import networkx as nx
-import plotly.graph_objs as go
-import igraph as ig
-import numpy as np
-import plotly.express as px
 
-def draw_3d_graph(graph: nx.Graph):
+def draw_3d_graph(graph: nx.Graph, title: str):
     num_links = graph.number_of_edges()
     num_nodes = graph.number_of_nodes()
     print("Number of links: ", num_links)
@@ -48,8 +45,14 @@ def draw_3d_graph(graph: nx.Graph):
     
     # Create a color map for edge types
     unique_edge_types = set(data['edge_obj'].features.edge_type for _, _, data in graph.edges(data=True))
-    color_map = px.colors.qualitative.D3_r
-   
+    #color_map = px.colors.qualitative.D3_r
+    color_map=[
+    "#1F77B4",
+    "#D62728",
+    "#316395",
+    "#8C564B",
+    
+]
     edge_type_to_color = {edge_type: color_map[i % len(color_map)] for i, edge_type in enumerate(unique_edge_types)}
     edges = {}
     for u, v, data in graph.edges(data=True):
@@ -58,11 +61,13 @@ def draw_3d_graph(graph: nx.Graph):
         edgename = str(u) + '-' + str(v)
         if edges.get(edgename, None) is None:
             edges[edgename] = {'count': 0, 'type': [], 'colors':[]}
-        if edge_type.value!=3:
-            kga=3
+        if edge_type.value==3:
+            color = "#7F7F7F"
+        else:
+            color = edge_type_to_color[edge_type]
         edges[edgename]['count'] += 1
         edges[edgename]['type'].append(edge_type)
-        edges[edgename]['colors'].append(edge_type_to_color[edge_type])
+        edges[edgename]['colors'].append(color)
 
         # edge_types.append(edge_type)
         # edge_colors.append(edge_type_to_color[edge_type])
@@ -101,7 +106,8 @@ def draw_3d_graph(graph: nx.Graph):
                 mid_y = (layt[u][1] + layt[v][1]) / 2
                 mid_z = (layt[u][2] + layt[v][2]) / 2
                 
-                offset = 0.1 * (i + 1)
+                offset_scale = .05
+                offset = offset_scale * (i + 1)
                 ctrl_x = mid_x + offset * (layt[v][1] - layt[u][1])
                 ctrl_y = mid_y - offset * (layt[v][0] - layt[u][0])
                 ctrl_z = mid_z + offset
@@ -161,8 +167,8 @@ def draw_3d_graph(graph: nx.Graph):
                 title='')
 
     layout = go.Layout(
-        title="3D Network Visualization",
-        width=1000,
+        title=title,
+        width=1400,
         height=1000,
         showlegend=True,
         scene=dict(
@@ -179,7 +185,7 @@ def draw_3d_graph(graph: nx.Graph):
     print("Done")
 
 
-def draw_graph(graph: ParameterGraph, dim: str = '2d'):
+def draw_graph(graph: ParameterGraph, dim: str = '2d', title= 'Network Visualization'):
     '''
     Draw the global graph
 
@@ -187,6 +193,6 @@ def draw_graph(graph: ParameterGraph, dim: str = '2d'):
     - graph (MultiDiGraph): Global graph
     '''
     if dim == '2d':
-        draw_nx_graph(graph)
+        draw_nx_graph(graph, title)
     elif dim == '3d':
-        draw_3d_graph(graph)
+        draw_3d_graph(graph, title)
