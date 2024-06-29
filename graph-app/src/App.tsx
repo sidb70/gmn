@@ -10,50 +10,29 @@ const App: React.FC = () => {
       cyGraph.current = new CytoscapeGraph(cyRef.current);
 
       cyGraph.current.onReady(() => {
-        
-
         // open test.json and load nodes and edges
         fetch('test.json')
           .then(response => response.json())
           .then(data => {
             console.log(data);
             if (cyGraph.current) {
-              data.nodes.forEach((node: any) => {
-                if (cyGraph.current){
-                  cyGraph.current.addNode(node.id);
-                }
+              cyGraph.current.batchAdd(data.nodes, data.links);
+              // data.nodes.forEach((node: any) => {
+                
+              //   if (cyGraph.current){
+              //     cyGraph.current.addNode(node.id);
+              //   }
 
-              });
+              // });
 
-              data.links.forEach((edge: any) => {
-                if (cyGraph.current){
-                  cyGraph.current.addEdge(edge.source, edge.target);
-                }
-              });
+              // data.links.forEach((edge: any) => {
+              //   if (cyGraph.current){
+              //     cyGraph.current.addEdge(edge.source, edge.target);
+              //   }
+              // });
 
               cyGraph.current.runLayout();
             }});
-              
-
-        // Add nodes
-        // cyGraph.current.addNode('A');
-        // cyGraph.current.addNode('B');
-        // cyGraph.current.addNode('C');
-
-        // // Add edges
-        // cyGraph.current.addEdge('A', 'B');
-        // cyGraph.current.addEdge('B', 'C');
-        // cyGraph.current.addEdge('C', 'A');
-        // cyGraph.current.addEdge('A', 'B'); // Adding a multi-edge
-
-        // // Customize colors
-        // cyGraph.current.setNodeColor('A', '#FF0000');
-        // cyGraph.current.setEdgeColor('A', 'B', '#FF0000');
-
-        // // Run layout
-        // cyGraph.current.runLayout();
-            
-          
           
       });
     }}, []);

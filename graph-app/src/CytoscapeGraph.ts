@@ -1,5 +1,13 @@
 import cytoscape, { Core, NodeSingular, EdgeSingular } from 'cytoscape';
 
+
+// Define the type for nodes and edges to ensure the 'group' property matches the expected type
+type NodeElement = { group: 'nodes'; data: { id: string; }; };
+type EdgeElement = { group: 'edges'; data: { source: string; target: string; }; };
+
+
+// This array now correctly matches the expected type 'ElementDefinition[]'
+
 class CytoscapeGraph {
   private cy: Core;
   private isReady: boolean = false;
@@ -83,6 +91,16 @@ class CytoscapeGraph {
   setEdgeColor(sourceId: string, targetId: string, color: string): void {
     const edge = this.cy.edges(`[source = "${sourceId}"][target = "${targetId}"]`);
     edge.style('line-color', color);
+  }
+
+  batchAdd(nodes: {id: string}[], edges: {source: string, target: string}[]): void {
+    const elementsToAdd: (NodeElement | EdgeElement)[] = [
+      ...nodes.map(node => ({ group: 'nodes', data:  {id: node.id} }) as NodeElement),
+      ...edges.map(edge => ({ group: 'edges', data: { source: edge.source, target: edge.target } }) as EdgeElement),
+    ];
+    this.cy.batch(() => {
+      this.cy.add(elementsToAdd);
+    });
   }
 
   runLayout(): void {
