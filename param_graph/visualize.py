@@ -101,10 +101,16 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     unique_edge_types = set(str(data['edge_obj'].features.edge_type) for _, _, data in graph.edges(data=True))
     #color_map = px.colors.qualitative.D3_r
     color_map=[
-    "#1F77B4",
-    "#D62728",
-    "#316395",
-    "#8C564B",
+    # "#1F77B4",
+    # "#D62728",
+    # "#316395",
+    # "#8C564B",
+    "#b3b6b7",
+    "#7F7F7F",
+    "#5dade2",
+    "#000000",
+    "#1c70c8",
+    "#35327e"
     ]
 
     edge_type_to_color = {edge_type: color_map[i % len(color_map)] for i, edge_type in enumerate(unique_edge_types)}
@@ -119,10 +125,10 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
         edgename = f"{u_index}-{v_index}"
         if edges.get(edgename, None) is None:
             edges[edgename] = {'count': 0, 'type': [], 'colors':[]}
-        if edge.value == 3:
-            color = "#7F7F7F"
-        else:
-            color = edge_type_to_color[str(edge)]
+        # if edge.value == 3:
+        #     color = "#7F7F7F"
+        # else:
+        color = edge_type_to_color[str(edge)]
         edges[edgename]['count'] += 1
         edges[edgename]['type'].append(str(edge))
         edges[edgename]['colors'].append(color)
@@ -235,8 +241,8 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     scene['zaxis']['range'] = [scale * z for z in scene['zaxis']['range']]
     layout = go.Layout(
         title=title,
-        width=1000,
-        height=700,
+        width=800,
+        height=600,
         showlegend=True,
         scene=scene,
         margin=dict(t=100),
