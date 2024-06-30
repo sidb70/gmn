@@ -1,8 +1,13 @@
 import React from 'react';
 import PlotlyGraph from './components/PlotlyGraph';
 import './App.css';
+import 'dotenv/config';
+
+
 
 function App() {
+  const SERVER_IP = '164.92.74.215'
+
   return (
 
     <div className="App">
@@ -35,8 +40,8 @@ function App() {
         <p>
           But this is just the beginning. We're in the lab, working hard to make this a reality.
         </p>
-        <PlotlyGraph url='http://localhost:8000/plot/1' title="Linear Only Neural Network" />
-        <PlotlyGraph url='http://localhost:8000/plot/2' title="Convolutional Neural Network" />
+        <PlotlyGraph url={ `http://${SERVER_IP}:8000/plot/1` } title="Linear Only Neural Network" />
+        <PlotlyGraph url={`http://${SERVER_IP}:8000/plot/2`} title="Convolutional Neural Network" />
       </div>
     </div>
   );
