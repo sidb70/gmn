@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Tuple
 import json
 import os
+import torch.nn as nn
 # ----------------- Enums -----------------
 
 class LayerType(Enum):
@@ -11,12 +12,12 @@ class LayerType(Enum):
     Enum for the type of layer in a neural network. Not used for GNN, just for graph representation
     Node features encapulate the layer type, so this is not strictly necessary (likely)
     '''
-    INPUT = -1
-    OUTPUT = -1
+    NON_PARAMETRIC = -1
+    INPUT = 0
     LINEAR = 1
     CONV = 2
     NORM = 3
-    RELU = 4
+    
     
 class NodeType(Enum):
     '''
@@ -24,19 +25,22 @@ class NodeType(Enum):
     - Will be used within the node features
     - does not distinguish between weight/bias. can encode that in edge type
     '''
-    INPUT = -1
-    OUTPUT = -1
+    INPUT = 0
     NON_PARAMETRIC = -1 # relu, softmax, etc
     LINEAR = 1 # for both lin weight and lin bias (weight/bias is encoded in edge type)
     CONV = 2 # for both conv weight and conv bias
     NORM = 3
+    def __str__(self):
+        return self.name.upper()
+    def __repr__(self) -> str:
+        return self.__str__()
 
 class EdgeType(Enum):
     '''
     Edge types for param graph
     Will be used within the edge features
     '''
-    NONPARAMETRIC = -1 # relu, softmax, etc
+    NON_PARAMETRIC = -1 # relu, softmax, etc
     LIN_WEIGHT = 1
     LIN_BIAS = 2
     CONV_WEIGHT = 3
@@ -44,15 +48,35 @@ class EdgeType(Enum):
     NORM_GAMMA = 5
     NORM_BETA = 6
 
+    def __str__(self):
+        return self.name.upper()
+    def __repr__(self) -> str:
+        return self.__str__()
+
 PARAMETRIC_LAYERS = [
     LayerType.LINEAR,
     LayerType.CONV,
 ]
-NON_PARAMETRIC_LAYERS = [
-    LayerType.NORM,
-    LayerType.RELU
 
-]
+
+@staticmethod
+def get_module_type(module: nn.Module) -> LayerType:
+    '''
+    Get the type of the module
+    '''
+    module_to_type = {
+        nn.Linear: LayerType.LINEAR,
+        nn.Conv2d: LayerType.CONV,
+        nn.BatchNorm2d: LayerType.NORM,
+        nn.ReLU: LayerType.NON_PARAMETRIC,
+        nn.Softmax: LayerType.NON_PARAMETRIC,
+        nn.Sigmoid: LayerType.NON_PARAMETRIC,
+        nn.Tanh: LayerType.NON_PARAMETRIC
+    }
+    if type(module) in module_to_type:
+        return module_to_type[type(module)]
+    else:
+        raise ValueError(f"Module type {type(module)} not recognized")
 # ----------------- Features -----------------
 class NodeFeatures(BaseModel):
     layer_num: int # layer number in the network

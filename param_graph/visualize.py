@@ -45,7 +45,7 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     
     
     # Create a color map for edge types
-    unique_edge_types = set(data['edge_obj'].features.edge_type for _, _, data in graph.edges(data=True))
+    unique_edge_types = set(str(data['edge_obj'].features.edge_type) for _, _, data in graph.edges(data=True))
     #color_map = px.colors.qualitative.D3_r
     color_map=[
     "#1F77B4",
@@ -54,30 +54,36 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     "#8C564B",
     
 ]
+    graph_nodes = {node_id: node_tup for node_id, node_tup in enumerate(graph.nodes(data=True))}
+    added_nodes = set()
+    labels = []
+    group = []
     edge_type_to_color = {edge_type: color_map[i % len(color_map)] for i, edge_type in enumerate(unique_edge_types)}
     edges = {}
     for u, v, data in graph.edges(data=True):
         G.add_edge(u, v)
-        edge_type = data['edge_obj'].features.edge_type
+        edge = data['edge_obj'].features.edge_type
         edgename = str(u) + '-' + str(v)
         if edges.get(edgename, None) is None:
             edges[edgename] = {'count': 0, 'type': [], 'colors':[]}
-        if edge_type.value==3:
+        if edge.value==3:
             color = "#7F7F7F"
         else:
-            color = edge_type_to_color[edge_type]
+            color = edge_type_to_color[str(edge)]
         edges[edgename]['count'] += 1
-        edges[edgename]['type'].append(edge_type)
+        edges[edgename]['type'].append(str(edge))
         edges[edgename]['colors'].append(color)
 
-        # edge_types.append(edge_type)
-        # edge_colors.append(edge_type_to_color[edge_type])
-    # print(set(edge_types))
-    labels = []
-    group = []
-    for node in graph.nodes(data=True):
-        labels.append(str(node[1]['node_obj']))
-        group.append(node[1]['subset'])
+        if u not in added_nodes:
+            labels.append(str(graph_nodes[u][1]['node_obj']))
+            group.append(graph_nodes[u][1]['subset'])
+            added_nodes.add(u)
+        if v not in added_nodes:
+            labels.append(graph_nodes[v][1]['node_obj'].features.node_type)
+            group.append(graph_nodes[v][1]['subset'])
+            added_nodes.add(v)
+
+
 
     layt = G.layout('kk', dim=3)
     
@@ -169,8 +175,8 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
 
     layout = go.Layout(
         title=title,
-        width=800,
-        height=600,
+        width=1000,
+        height=800,
         showlegend=True,
         scene=dict(
             xaxis=dict(axis),

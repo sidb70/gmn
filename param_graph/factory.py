@@ -9,7 +9,7 @@ from .graph_types import (
     Edge,
     EdgeType,
     PARAMETRIC_LAYERS,
-    NON_PARAMETRIC_LAYERS
+    get_module_type
 )
 
 
@@ -61,12 +61,9 @@ class LayerFactory:
         Returns:
         - NetworkLayer: Linear layer
         '''
-        try:
-            prev_layer: NetworkLayer = kwargs['prev_layer']   
-        except KeyError:
-            raise ValueError("Previous layer must be provided to create linear layer")
-        
-        linear_layer = NetworkLayer(layer_num=layer_num, layer_type=LayerType.LINEAR)
+        prev_layer: NetworkLayer = kwargs['prev_layer']   
+        layer_type = kwargs['layer_type']
+        linear_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
 
         for i, weights in enumerate(layer.weight.data):
             # weights corresponds to the weights for each input feature for the ith output neuron
@@ -86,7 +83,7 @@ class LayerFactory:
                 linear_layer.add_edge(edge)
         
         return linear_layer
-        
+   
     def create_norm_layer(self, 
                           module: nn.Module, 
                           layer_num: int, 
@@ -106,17 +103,14 @@ class LayerFactory:
         Returns:
         - NetworkLayer: Normalization layer
         '''
-        try:
-            prev_layer = kwargs['prev_layer']
-        except KeyError:
-            raise ValueError("Previous layer must be provided to create norm layer")
-        
-        norm_layer = NetworkLayer(layer_num=layer_num, layer_type=LayerType.NORM)
+        prev_layer = kwargs['prev_layer']
+        layer_type = kwargs['layer_type']
+        norm_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
 
         gamma, beta = module.weight, module.bias
         bn_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
                                                    rel_index=0, 
-                                                   node_type=NodeType.NORM,))
+                                                   node_type=layer_type,))
         norm_layer.add_node(bn_node)
         # connect to all nodes in the previous layer
         i=0
@@ -154,12 +148,10 @@ class LayerFactory:
         Returns:
         - NetworkLayer: Convolutional layer
         '''
-        try:
-            prev_layer = kwargs['prev_layer']
-        except KeyError:
-            raise ValueError("Previous layer must be provided to create conv layer")
-        
-        conv_layer = NetworkLayer(layer_num=layer_num, layer_type=2)
+
+        prev_layer = kwargs['prev_layer']
+        layer_type = kwargs['layer_type']
+        conv_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
 
         
             #iterate through the channels of the current layer, one new node per channel
@@ -192,6 +184,33 @@ class LayerFactory:
         #TODO: add bias edges
         
         return conv_layer
+    
+    def create_non_parametric_layer(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
+        '''
+        Create a non-parametric layer
+        - Non-parametric layers do not have weights (ReLU, Sigmoid, etc.)
+        - Each node in the layer represents a neuron in the layer
+        
+        Args:
+        - layer (nn.Module): PyTorch non-parametric layer
+        - layer_num (int): Layer number
+        - start_node_id (int): Starting node ID
+        - kwargs (dict): Additional arguments
+        
+        Returns:
+        - NetworkLayer: Non-parametric layer
+        '''
+        layer_type = kwargs['layer_type']
+        non_parametric_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
+        node = Node(start_node_id, NodeFeatures(layer_num=layer_num, rel_index=0, node_type=NodeType.NON_PARAMETRIC))
+        non_parametric_layer.add_node(node)
+        prev_layer = kwargs['prev_layer']
+        for prev_nodes in prev_layer.nodes:
+            edge = Edge((node, prev_nodes), EdgeFeatures(weight=-1, layer_num=layer_num, edge_type=EdgeType.NON_PARAMETRIC))
+            non_parametric_layer.add_edge(edge)
+        return non_parametric_layer
+        
+        
     def create_layer(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a network layer from a PyTorch layer
@@ -208,22 +227,16 @@ class LayerFactory:
         '''
         if layer_num==0:
             return self.create_input_layer(module, **kwargs)
-        
-        prev_layers = kwargs.get('prev_layers', None)
-        prev_layer = prev_layers[-1]
-        i=-2
-        while prev_layer.layer_type in NON_PARAMETRIC_LAYERS and i>=-len(prev_layers):
-            prev_layer = prev_layers[i]
-            i-=1
-        if prev_layer in NON_PARAMETRIC_LAYERS and layer_num>1:
-            raise ValueError("No previous parametric layer found")
-        kwargs['prev_layer'] = prev_layer
-        if isinstance(module, nn.Linear):
+        module_type = get_module_type(module)
+        kwargs['layer_type'] = module_type
+        if module_type == LayerType.LINEAR:
             return self.create_linear_layer(module, layer_num, start_node_id, **kwargs)
-        elif isinstance(module, nn.BatchNorm1d) or isinstance(module, nn.BatchNorm2d):
+        elif module_type == LayerType.NORM:
             return self.create_norm_layer(module, layer_num, start_node_id, **kwargs)
-        elif isinstance(module, nn.Conv2d):
+        elif module_type ==LayerType.CONV:
             return self.create_conv_layer(module, layer_num, start_node_id, **kwargs)
+        elif module_type == LayerType.NON_PARAMETRIC:
+            return self.create_non_parametric_layer(module, layer_num, start_node_id, **kwargs)
         else:
             raise ValueError(f"Layer type {type(module)} not yet supported")
     

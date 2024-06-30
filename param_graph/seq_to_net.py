@@ -3,6 +3,9 @@ import torch.nn as nn
 from .graph_types import ParameterGraph, NetworkLayer
 from pprint import pprint
 from .visualize import draw_graph
+from .graph_types import (
+    PARAMETRIC_LAYERS,
+)
 from typing import List
 
 def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
@@ -18,16 +21,17 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     layer_factory = LayerFactory()
     layers: List[NetworkLayer] = []
     # create first layer
-    first_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
-    layers.append(first_layer)
-    # print(first_layer)
+    prev_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
+    layers.append(prev_layer)
     layer_num=1
     for module in seq:
         if isinstance(module, nn.Flatten):
             continue
         node_id = max(layers[-1].get_node_ids()) + 1
-        layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=node_id, prev_layers=layers)
+        layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=node_id, prev_layer=prev_layer)
         layers.append(layer)
+        if layer.layer_type in PARAMETRIC_LAYERS:
+            prev_layer = layer
         layer_num += 1
     global_graph = ParameterGraph()
     for layer in layers:
@@ -41,12 +45,7 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
 def main():
     model = nn.Sequential(
         nn.Linear(4,10),
-        nn.BatchNorm1d(10),
-        nn.Linear(10,10),
-        nn.BatchNorm1d(10),
-        nn.Linear(10,5),
-        nn.BatchNorm1d(5),
-        nn.Linear(5,1)
+        nn.ReLU(),
     )
     global_graph = seq_to_net(model)
     # pprint("Nodes:")
@@ -55,7 +54,7 @@ def main():
     pprint("Edges:")
     pprint( [edge for edge in global_graph.edges(data=True) if edge[2]['edge_obj'].features.edge_type.value!=3])
     sequential_title = ',\n'.join([str(type(module)).split('.')[-1].strip(">'") for module in model])
-    draw_graph(global_graph, dim='3d',title=sequential_title, save_path='/Users/sidb/Development/gmn/graph-app/backend/static/graph2.html')
+    # draw_graph(global_graph, dim='3d',title=sequential_title, save_path='/Users/sidb/Development/gmn/graph-app/backend/static/graph2.html')
 
     #print(global_graph.to_json())
     #global_graph.save('/Users/sidb/Development/gmn/graph-app/public/test.json')
