@@ -7,6 +7,7 @@ import igraph as ig
 import plotly.express as px
 import plotly.graph_objs as go
 import numpy as np
+import plotly.io as pio
 
 
 
@@ -181,6 +182,7 @@ def draw_3d_graph(graph: nx.Graph, title: str):
     )
 
     fig = go.Figure(data=[edge_trace, node_trace] + legend_traces, layout=layout)
+    fig.write_html("3d_graph.html")
     fig.show()
     print("Done")
 

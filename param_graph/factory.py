@@ -192,9 +192,6 @@ class LayerFactory:
         #TODO: add bias edges
         
         return conv_layer
-                
-
-        raise NotImplementedError("Conv layer creation not yet implemented")
     def create_layer(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a network layer from a PyTorch layer
