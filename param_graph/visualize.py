@@ -187,7 +187,7 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str='../graph-app/back
     print("Done")
 
 
-def draw_graph(graph: ParameterGraph, dim: str = '2d', title= 'Network Visualization'):
+def draw_graph(graph: ParameterGraph, save_path: str, dim: str = '2d', title= 'Network Visualization'):
     '''
     Draw the global graph
 
@@ -197,4 +197,4 @@ def draw_graph(graph: ParameterGraph, dim: str = '2d', title= 'Network Visualiza
     if dim == '2d':
         draw_nx_graph(graph, title)
     elif dim == '3d':
-        draw_3d_graph(graph, title)
+        draw_3d_graph(graph, title, save_path)

@@ -56,6 +56,7 @@ function App() {
   return (
     <div className="App">
       <PlotlyGraph url='http://localhost:8000/plot/1'/>
+      <PlotlyGraph url='http://localhost:8000/plot/2'/>
     </div>
   );
 }

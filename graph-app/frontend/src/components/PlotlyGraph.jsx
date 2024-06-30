@@ -1,22 +1,4 @@
 
-// interface PlotlyGraphProps {
-//   htmlString: string;
-// }
-
-// const PlotlyGraph: React.FC<PlotlyGraphProps> = ({ htmlString }) => {
-//   const divRef = useRef<HTMLDivElement>(null);
-
-//   useEffect(() => {
-//     if (divRef.current) {
-//       divRef.current.innerHTML = htmlString;
-//     }
-//   }, [htmlString]);
-
-//   return <div ref={divRef} />;
-// };
-
-// export default PlotlyGraph;
-// PlotlyGraph.tsx
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 
@@ -48,7 +30,7 @@ function PlotlyGraph({ url }) {
 
   return (
     <div className="PlotlyGraph">
-      <h1>Plotly Graph</h1>
+      <h1></h1>
       <div dangerouslySetInnerHTML={{ __html: plotHTML }} />
     </div>
   );
