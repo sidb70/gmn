@@ -10,9 +10,9 @@ function App() {
         <h1>acumen</h1>
         <h2>understanding the internal representations of LLMs</h2>
         <h3>
-          <a href="" className="author-link">Siddhartha Bhattacharya,</a>
-          <a href="" className="author-link">Uzair Mohammed,</a> 
-          <a href="" className="author-link">Daniel Helo,</a> 
+          <a href="https://www.linkedin.com/in/sid-bhat/" className="author-link">Siddhartha Bhattacharya,</a>
+          <a href="https://www.linkedin.com/in/uzair-m/" className="author-link">Uzair Mohammed,</a> 
+          <a href="https://www.linkedin.com/in/daniel-helo-puccini-a3779b242/" className="author-link">Daniel Helo,</a> 
         </h3>
         
         <p>The graphs shown below are neural networks represented as parameter graphs from 
