@@ -1,11 +1,8 @@
-from factory import LayerFactory
+from .factory import LayerFactory
 import torch.nn as nn
-import networkx as nx
-from graph_types import ParameterGraph, NetworkLayer
-import matplotlib.pyplot as plt
+from .graph_types import ParameterGraph, NetworkLayer
 from pprint import pprint
-import random
-from visualize import draw_graph
+from .visualize import draw_graph
 from typing import List
 
 def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
@@ -43,13 +40,13 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
 
 def main():
     model = nn.Sequential(
-        nn.Conv2d(3, 4, 3),
-        nn.BatchNorm2d(4),
-        nn.Conv2d(4, 4, 3),
-        nn.Flatten(),
-        nn.Linear(4*27*27, 10),
-        nn.Linear(10, 2)
-
+        nn.Linear(4,10),
+        nn.BatchNorm1d(10),
+        nn.Linear(10,10),
+        nn.BatchNorm1d(10),
+        nn.Linear(10,5),
+        nn.BatchNorm1d(5),
+        nn.Linear(5,1)
     )
     global_graph = seq_to_net(model)
     # pprint("Nodes:")
@@ -58,10 +55,10 @@ def main():
     pprint("Edges:")
     pprint( [edge for edge in global_graph.edges(data=True) if edge[2]['edge_obj'].features.edge_type.value!=3])
     sequential_title = ',\n'.join([str(type(module)).split('.')[-1].strip(">'") for module in model])
-    draw_graph(global_graph, dim='3d',title=sequential_title)
+    draw_graph(global_graph, dim='3d',title=sequential_title, save_path='/Users/sidb/Development/gmn/graph-app/backend/static/graph2.html')
 
     #print(global_graph.to_json())
-    global_graph.save('/Users/sidb/Development/gmn/graph-app/public/test.json')
+    #global_graph.save('/Users/sidb/Development/gmn/graph-app/public/test.json')
 if __name__ == '__main__':
     main()
 

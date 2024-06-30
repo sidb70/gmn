@@ -1,8 +1,8 @@
-
+// PlotlyGraph.jsx
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 
-function PlotlyGraph({ url }) {
+function PlotlyGraph({ url, title }) {
   const [plotHTML, setPlotHTML] = useState('');
 
   useEffect(() => {
@@ -10,6 +10,7 @@ function PlotlyGraph({ url }) {
       fetch(url)
         .then(response => response.text())
         .then(data => {
+          console.log('Plot fetched:', data)
           setPlotHTML(data);
           executeScripts(data);
         })
@@ -30,7 +31,7 @@ function PlotlyGraph({ url }) {
 
   return (
     <div className="PlotlyGraph">
-      <h1></h1>
+      <h2>{title}</h2>
       <div dangerouslySetInnerHTML={{ __html: plotHTML }} />
     </div>
   );
@@ -38,6 +39,7 @@ function PlotlyGraph({ url }) {
 
 PlotlyGraph.propTypes = {
   url: PropTypes.string.isRequired,
+  title: PropTypes.string,
 };
 
 export default PlotlyGraph;

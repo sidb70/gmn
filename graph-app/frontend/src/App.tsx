@@ -51,12 +51,16 @@
 // App.tsx
 import React from 'react';
 import PlotlyGraph from './components/PlotlyGraph';
+import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <PlotlyGraph url='http://localhost:8000/plot/1'/>
-      <PlotlyGraph url='http://localhost:8000/plot/2'/>
+      <div className="container">
+        <h1>Parameter Graphs</h1>
+        <PlotlyGraph url='http://localhost:8000/plot/1' title="Convolutional neural network" />
+        <PlotlyGraph url='http://localhost:8000/plot/2' title="Linear-only neural network" />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import torch.nn as nn
-from graph_types import (
+from .graph_types import (
     NetworkLayer, 
     Node, 
     NodeType, 

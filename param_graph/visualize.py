@@ -1,4 +1,4 @@
-from graph_types import ParameterGraph
+from .graph_types import ParameterGraph
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -30,7 +30,7 @@ def draw_nx_graph(graph: ParameterGraph, title: str):
     plt.show()
 
 
-def draw_3d_graph(graph: nx.Graph, title: str, save_path: str='../graph-app/backend/static/graph1.html'):
+def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inline=False) -> None:
     num_links = graph.number_of_edges()
     num_nodes = graph.number_of_nodes()
     print("Number of links: ", num_links)
@@ -182,12 +182,16 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str='../graph-app/back
     )
 
     fig = go.Figure(data=[edge_trace, node_trace] + legend_traces, layout=layout)
-    fig.write_html(save_path)
-    fig.show()
+    if not display_inline:
+        fig.write_html(save_path)
+        fig.show()
+    else:
+        # draw with pio
+        pio.show(fig)
     print("Done")
 
 
-def draw_graph(graph: ParameterGraph, save_path: str, dim: str = '2d', title= 'Network Visualization'):
+def draw_graph(graph: ParameterGraph, save_path: str=None, dim: str = '2d', title= 'Network Visualization', display_inline=False):
     '''
     Draw the global graph
 
@@ -197,4 +201,4 @@ def draw_graph(graph: ParameterGraph, save_path: str, dim: str = '2d', title= 'N
     if dim == '2d':
         draw_nx_graph(graph, title)
     elif dim == '3d':
-        draw_3d_graph(graph, title, save_path)
+        draw_3d_graph(graph, title, save_path, display_inline)
