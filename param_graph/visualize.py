@@ -52,6 +52,7 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     'INPUT': '#FFB3BA',
     'LINEAR': '#BAFFC9',
     'CONV': '#BAE1FF',
+    'NORM': '#C9BAFF',
     'NON_PARAMETRIC': '#FFDFBA'
     }
     labels = []
@@ -228,13 +229,13 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
                 eye=dict(x=1.5, y=1.5, z=0.5)
             ),
         )
-    scale = 1.4
+    scale = 1.8
     scene['xaxis']['range'] = [scale * x for x in scene['xaxis']['range']]
     scene['yaxis']['range'] = [scale * y for y in scene['yaxis']['range']]
     scene['zaxis']['range'] = [scale * z for z in scene['zaxis']['range']]
     layout = go.Layout(
         title=title,
-        width=1200,
+        width=1000,
         height=700,
         showlegend=True,
         scene=scene,
