@@ -71,7 +71,8 @@ def get_module_type(module: nn.Module) -> LayerType:
         nn.ReLU: LayerType.NON_PARAMETRIC,
         nn.Softmax: LayerType.NON_PARAMETRIC,
         nn.Sigmoid: LayerType.NON_PARAMETRIC,
-        nn.Tanh: LayerType.NON_PARAMETRIC
+        nn.Tanh: LayerType.NON_PARAMETRIC,
+        nn.SiLU: LayerType.NON_PARAMETRIC,
     }
     if type(module) in module_to_type:
         return module_to_type[type(module)]
