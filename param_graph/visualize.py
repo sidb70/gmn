@@ -30,7 +30,7 @@ def draw_nx_graph(graph: ParameterGraph, title: str):
     plt.show()
 
 
-def draw_3d_graph(graph: nx.Graph, title: str):
+def draw_3d_graph(graph: nx.Graph, title: str, save_path: str='../graph-app/backend/static/graph1.html'):
     num_links = graph.number_of_edges()
     num_nodes = graph.number_of_nodes()
     print("Number of links: ", num_links)
@@ -169,8 +169,8 @@ def draw_3d_graph(graph: nx.Graph, title: str):
 
     layout = go.Layout(
         title=title,
-        width=1400,
-        height=1000,
+        width=800,
+        height=600,
         showlegend=True,
         scene=dict(
             xaxis=dict(axis),
@@ -182,7 +182,7 @@ def draw_3d_graph(graph: nx.Graph, title: str):
     )
 
     fig = go.Figure(data=[edge_trace, node_trace] + legend_traces, layout=layout)
-    fig.write_html("3d_graph.html")
+    fig.write_html(save_path)
     fig.show()
     print("Done")
 
