@@ -67,12 +67,14 @@ def get_module_type(module: nn.Module) -> LayerType:
     module_to_type = {
         nn.Linear: LayerType.LINEAR,
         nn.Conv2d: LayerType.CONV,
+        nn.BatchNorm1d: LayerType.NORM,
         nn.BatchNorm2d: LayerType.NORM,
         nn.BatchNorm1d: LayerType.NORM,
         nn.ReLU: LayerType.NON_PARAMETRIC,
         nn.Softmax: LayerType.NON_PARAMETRIC,
         nn.Sigmoid: LayerType.NON_PARAMETRIC,
         nn.Tanh: LayerType.NON_PARAMETRIC,
+        nn.SiLU: LayerType.NON_PARAMETRIC,
     }
     if type(module) in module_to_type:
         return module_to_type[type(module)]

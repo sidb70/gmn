@@ -8,9 +8,15 @@ import plotly.express as px
 import plotly.graph_objs as go
 import numpy as np
 import plotly.io as pio
+import math
 
 
-
+def bezier_curve(p0, p1, p2, num_points=20):
+    t = np.linspace(0, 1, num_points)
+    x = (1-t)**2 * p0[0] + 2*(1-t)*t * p1[0] + t**2 * p2[0]
+    y = (1-t)**2 * p0[1] + 2*(1-t)*t * p1[1] + t**2 * p2[1]
+    z = (1-t)**2 * p0[2] + 2*(1-t)*t * p1[2] + t**2 * p2[2]
+    return x, y, z
 def draw_nx_graph(graph: ParameterGraph, title: str):
     '''
     Draw the global graph
@@ -37,100 +43,136 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     print("Number of nodes: ", num_nodes)
 
     G = ig.Graph(directed=True)
-    G.add_vertices(graph.number_of_nodes())
 
-    # edge_counts = {}
-    # edge_types = []
-    # edge_colors = []
-    
-    
+    labels = []
+    node_colors = []
+    Xn, Yn, Zn = [], [], []
+
+    node_color_map = {
+    'INPUT': '#FFB3BA',
+    'LINEAR': '#BAFFC9',
+    'CONV': '#BAE1FF',
+    'NORM': '#C9BAFF',
+    'NON_PARAMETRIC': '#FFDFBA'
+    }
+    labels = []
+    node_colors = []
+    Xn, Yn, Zn = [], [], []
+
+    # Group nodes by subset
+    nodes_by_subset = {}
+    for node_id, node_data in graph.nodes(data=True):
+        subset = node_data['subset']
+        if subset not in nodes_by_subset:
+            nodes_by_subset[subset] = []
+        nodes_by_subset[subset].append((node_id, node_data))
+
+    # Sort subsets
+    sorted_subsets = sorted(nodes_by_subset.keys())
+
+    for layer, subset in enumerate(sorted_subsets):
+        nodes = nodes_by_subset[subset]
+        num_nodes = len(nodes)
+        
+        # Calculate circle radius based on the number of nodes
+        radius = max(1, num_nodes / (2 * math.pi))
+        
+        for i, (node_id, node_data) in enumerate(nodes):
+            labels.append(str(node_data['node_obj'].features.node_type))
+            node_type = str(node_data['node_obj'].features.node_type)
+            node_colors.append(node_color_map[node_type])
+            
+            # Calculate position on the circle
+            angle = 2 * math.pi * i / num_nodes
+            x = radius * math.cos(angle)
+            y = radius * math.sin(angle)
+            z = layer * 1  # Increase vertical separation between layers
+            
+            Xn.append(x)
+            Yn.append(y)
+            Zn.append(z)
+
+            G.add_vertex(node_id)
+
+    # Create a mapping from node_id to its index in the position lists
+    node_to_index = {node_id: i for i, (node_id, _) in enumerate(graph.nodes(data=True))}
+
     # Create a color map for edge types
     unique_edge_types = set(str(data['edge_obj'].features.edge_type) for _, _, data in graph.edges(data=True))
     #color_map = px.colors.qualitative.D3_r
     color_map=[
-    "#1F77B4",
-    "#D62728",
-    "#316395",
-    "#8C564B",
-    
-]
-    graph_nodes = {node_id: node_tup for node_id, node_tup in enumerate(graph.nodes(data=True))}
-    added_nodes = set()
-    labels = []
-    group = []
+    # "#1F77B4",
+    # "#D62728",
+    # "#316395",
+    # "#8C564B",
+    "#b3b6b7",
+    "#7F7F7F",
+    "#5dade2",
+    "#000000",
+    "#1c70c8",
+    "#35327e"
+    ]
+
     edge_type_to_color = {edge_type: color_map[i % len(color_map)] for i, edge_type in enumerate(unique_edge_types)}
+    edges = {} 
     edges = {}
     for u, v, data in graph.edges(data=True):
-        G.add_edge(u, v)
+        u_index = node_to_index[u]
+        v_index = node_to_index[v]
+        G.add_edge(u_index, v_index)
+        
         edge = data['edge_obj'].features.edge_type
-        edgename = str(u) + '-' + str(v)
+        edgename = f"{u_index}-{v_index}"
         if edges.get(edgename, None) is None:
             edges[edgename] = {'count': 0, 'type': [], 'colors':[]}
-        if edge.value==3:
-            color = "#7F7F7F"
-        else:
-            color = edge_type_to_color[str(edge)]
+        # if edge.value == 3:
+        #     color = "#7F7F7F"
+        # else:
+        color = edge_type_to_color[str(edge)]
         edges[edgename]['count'] += 1
         edges[edgename]['type'].append(str(edge))
         edges[edgename]['colors'].append(color)
-
-        if u not in added_nodes:
-            labels.append(str(graph_nodes[u][1]['node_obj']))
-            group.append(graph_nodes[u][1]['subset'])
-            added_nodes.add(u)
-        if v not in added_nodes:
-            labels.append(graph_nodes[v][1]['node_obj'].features.node_type)
-            group.append(graph_nodes[v][1]['subset'])
-            added_nodes.add(v)
-
-
-
-    layt = G.layout('kk', dim=3)
-    
-    Xn = [layt[k][0] for k in range(num_nodes)]
-    Yn = [layt[k][1] for k in range(num_nodes)]
-    Zn = [layt[k][2] for k in range(num_nodes)]
+    for i in range(num_nodes):
+        print(i, labels[i], node_colors[i])
     Xe = []
     Ye = []
     Ze = []
-    edge_colors_expanded = []
+    edge_colors_expanded = [] # rep
 
-    # for (u, v), count in edge_counts.items():
+
     for edgename, vals in edges.items():
-        u,v = edgename.split('-')
-        u = int(u)
-        v = int(v)
+        u, v = map(int, edgename.split('-'))
         count = vals['count']
         if count == 1:
-            Xe += [layt[u][0], layt[v][0], None]
-            Ye += [layt[u][1], layt[v][1], None]
-            Ze += [layt[u][2], layt[v][2], None]
+            Xe += [Xn[u], Xn[v], None]
+            Ye += [Yn[u], Yn[v], None]
+            Ze += [Zn[u], Zn[v], None]
             edge_color = vals['colors'][0]
             edge_colors_expanded += [edge_color] * 3
-        else:
-            for i in range(len(vals['colors'])):
-                mid_x = (layt[u][0] + layt[v][0]) / 2
-                mid_y = (layt[u][1] + layt[v][1]) / 2
-                mid_z = (layt[u][2] + layt[v][2]) / 2
-                
-                offset_scale = .05
-                offset = offset_scale * (i + 1)
-                ctrl_x = mid_x + offset * (layt[v][1] - layt[u][1])
-                ctrl_y = mid_y - offset * (layt[v][0] - layt[u][0])
-                ctrl_z = mid_z + offset
-                
-                t = np.linspace(0, 1, 20)
-                x = (1-t)**2 * layt[u][0] + 2*(1-t)*t * ctrl_x + t**2 * layt[v][0]
-                y = (1-t)**2 * layt[u][1] + 2*(1-t)*t * ctrl_y + t**2 * layt[v][1]
-                z = (1-t)**2 * layt[u][2] + 2*(1-t)*t * ctrl_z + t**2 * layt[v][2]
+        else:  # multi edges
+            for i in range(count):
+                # Calculate midpoint
+                mid_x = (Xn[u] + Xn[v]) / 2
+                mid_y = (Yn[u] + Yn[v]) / 2
+                mid_z = (Zn[u] + Zn[v]) / 2
 
-                Xe.extend(x)
-                Ye.extend(y)
-                Ze.extend(z)
+                # Calculate control point (slightly off the midpoint)
+                offset = 0.1 * (i + 1)  # Increase offset for each edge
+                ctrl_x = mid_x + offset * (Yn[v] - Yn[u])
+                ctrl_y = mid_y - offset * (Xn[v] - Xn[u])
+                ctrl_z = mid_z + offset
+
+                # Generate Bézier curve
+                x, y, z = bezier_curve([Xn[u], Yn[u], Zn[u]], 
+                                    [ctrl_x, ctrl_y, ctrl_z], 
+                                    [Xn[v], Yn[v], Zn[v]])
+
+                Xe.extend(x.tolist() + [None])
+                Ye.extend(y.tolist() + [None])
+                Ze.extend(z.tolist() + [None])
+                
                 edge_color = vals['colors'][i]
-                #hard code light gray for now
-                # edge_color = 'rgb(211,211,211)' 
-                edge_colors_expanded.extend([edge_color] * len(x))
+                edge_colors_expanded.extend([edge_color] * (len(x) + 1))  # +1 for the None
 
     print("adding traces")
     
@@ -143,26 +185,31 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
                               )
 
     node_trace = go.Scatter3d(x=Xn,
-                              y=Yn,
-                              z=Zn,
-                              mode='markers',
-                              name='actors',
-                              marker=dict(symbol='circle',
-                                          size=6,
-                                          color=group,
-                                          colorscale='Viridis',
-                                          line=dict(color='rgb(50,50,50)', width=0.5)
-                                          ),
-                              text=labels,
-                              hoverinfo='text'
-                              )
-
+                            y=Yn,
+                            z=Zn,
+                            mode='markers',
+                            name='actors',
+                            marker=dict(symbol='circle',
+                                        size=6,
+                                        color=node_colors,
+                                        line=dict(color='rgb(50,50,50)', width=0.5)
+                                        ),
+                            text=labels,
+                            hoverinfo='text'
+                            )
     # Create legend traces
     legend_traces = []
     for edge_type, color in edge_type_to_color.items():
         legend_trace = go.Scatter3d(x=[None], y=[None], z=[None], mode='lines',
                                     name=f'Edge Type: {edge_type}',
                                     line=dict(color=color, width=2),
+                                    showlegend=True)
+        legend_traces.append(legend_trace)
+        # Create legend traces for node types
+    for node_type, color in node_color_map.items():
+        legend_trace = go.Scatter3d(x=[None], y=[None], z=[None], mode='markers',
+                                    name=f'Node Type: {node_type}',
+                                    marker=dict(size=6, color=color),
                                     showlegend=True)
         legend_traces.append(legend_trace)
 
@@ -173,16 +220,31 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
                 showticklabels=False,
                 title='')
 
+    x_range = [min(Xn) - 0.5, max(Xn) + 0.5]
+    y_range = [min(Yn) - 0.5, max(Yn) + 0.5]
+    z_range = [min(Zn) - 0.5, max(Zn) + 0.5]
+    scene=dict(
+            xaxis=dict(axis, range=x_range),
+            yaxis=dict(axis, range=y_range),
+            zaxis=dict(axis, range=z_range),
+            aspectmode='manual',
+            aspectratio=dict(x=1, y=1, z=2),
+            camera=dict(
+                up=dict(x=0, y=0, z=1),
+                center=dict(x=0, y=0, z=0),
+                eye=dict(x=1.5, y=1.5, z=0.5)
+            ),
+        )
+    scale = 1.8
+    scene['xaxis']['range'] = [scale * x for x in scene['xaxis']['range']]
+    scene['yaxis']['range'] = [scale * y for y in scene['yaxis']['range']]
+    scene['zaxis']['range'] = [scale * z for z in scene['zaxis']['range']]
     layout = go.Layout(
         title=title,
-        width=1000,
-        height=800,
+        width=800,
+        height=600,
         showlegend=True,
-        scene=dict(
-            xaxis=dict(axis),
-            yaxis=dict(axis),
-            zaxis=dict(axis),
-        ),
+        scene=scene,
         margin=dict(t=100),
         hovermode='closest',
     )

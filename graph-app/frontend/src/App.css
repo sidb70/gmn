@@ -81,3 +81,9 @@ h2 {
 .PlotlyGraph {
   margin-bottom: 3rem;
 }
+.author-link {
+  margin-right: 5px; /* Adjust the space by changing the 5px value */
+}
+.inline-link {
+  margin-left: 5px; /* Adjust the space by changing the 5px value */
+}

@@ -110,7 +110,7 @@ class LayerFactory:
         gamma, beta = module.weight, module.bias
         bn_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
                                                    rel_index=0, 
-                                                   node_type=layer_type,))
+                                                   node_type=NodeType.NORM,))
         norm_layer.add_node(bn_node)
         # connect to all nodes in the previous layer
         i=0
