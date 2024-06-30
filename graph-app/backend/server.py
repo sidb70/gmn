@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import os
+import uvicorn
 
 app = FastAPI()
 
@@ -20,3 +21,7 @@ def get_plot(graph_id: int):
     with open(f'./backend/static/graph{graph_id}.html', 'r') as file:
         html_content = file.read()
     return html_content
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host="0.0.0.0", port=8000)

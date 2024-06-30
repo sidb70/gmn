@@ -160,6 +160,6 @@ cython_debug/
 #.idea/
 gmn_lim/
 *.DS_Store
-graph-app/backend/static/
+# graph-app/backend/static/
 .ssh/
 node_modules/
