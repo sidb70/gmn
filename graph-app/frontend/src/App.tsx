@@ -12,7 +12,7 @@ function App() {
 
     <div className="App">
       <div className="container">
-        <h1>acumen</h1>
+        <h1>antilect</h1>
         <h2>understanding the internal representations of LLMs</h2>
         <h3>
           <a href="https://www.linkedin.com/in/sid-bhat/" className="author-link">Siddhartha Bhattacharya,</a>
