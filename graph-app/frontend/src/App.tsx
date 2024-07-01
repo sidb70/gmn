@@ -1,12 +1,12 @@
 import React from 'react';
 import PlotlyGraph from './components/PlotlyGraph';
 import './App.css';
-import 'dotenv/config';
+//import 'dotenv/config';
 
 
 
 function App() {
-  const SERVER_IP = '164.92.74.215'
+  const SERVER_IP = '127.0.0.1'
 
   return (
 

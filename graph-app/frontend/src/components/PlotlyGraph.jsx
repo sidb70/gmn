@@ -7,10 +7,12 @@ function PlotlyGraph({ url, title }) {
 
   useEffect(() => {
     if (url) {
+      console.log('Fetching plot:', url)
       fetch(url)
         .then(response => response.text())
         .then(data => {
-          console.log('Plot fetched:', data)
+          console.log('Plot fetched')
+          setTimeout(() => executeScripts(data), 100);
           setPlotHTML(data);
           executeScripts(data);
         })
@@ -20,9 +22,11 @@ function PlotlyGraph({ url, title }) {
 
   const executeScripts = (html) => {
     const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gm;
+    console.log('Executing scripts:');
     let scripts;
     while ((scripts = scriptRegex.exec(html))) {
       const scriptContent = scripts[1];
+      console.log('found script')
       const script = document.createElement('script');
       script.text = scriptContent;
       document.body.appendChild(script).parentNode.removeChild(script);
@@ -32,7 +36,7 @@ function PlotlyGraph({ url, title }) {
   return (
     <div className="PlotlyGraph">
       <h2>{title}</h2>
-      <div dangerouslySetInnerHTML={{ __html: plotHTML }} />
+      <div style={{minHeight: '400px'}} dangerouslySetInnerHTML={{ __html: plotHTML }} />
     </div>
   );
 }
