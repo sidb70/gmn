@@ -28,9 +28,10 @@ class NodeType(Enum):
     '''
     INPUT = 0
     NON_PARAMETRIC = -1 # relu, softmax, etc
-    LINEAR = 1 # for both lin weight and lin bias (weight/bias is encoded in edge type)
-    CONV = 2 # for both conv weight and conv bias
-    NORM = 3
+    LINEAR = 1 
+    LINEAR_BIAS = 2
+    CONV = 3  
+    NORM = 5
     def __str__(self):
         return self.name.upper()
     def __repr__(self) -> str:
@@ -57,6 +58,9 @@ class EdgeType(Enum):
 PARAMETRIC_LAYERS = [
     LayerType.LINEAR,
     LayerType.CONV,
+]
+BIAS_NODE_TYPES = [
+    NodeType.LINEAR_BIAS,
 ]
 
 

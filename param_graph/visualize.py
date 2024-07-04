@@ -51,7 +51,9 @@ def draw_3d_graph(graph: nx.Graph, title: str, save_path: str=None, display_inli
     node_color_map = {
     'INPUT': '#FFB3BA',
     'LINEAR': '#BAFFC9',
+    'LINEAR_BIAS': '#81B622',
     'CONV': '#BAE1FF',
+    'CONV_BIAS': '#970C10',
     'NORM': '#C9BAFF',
     'NON_PARAMETRIC': '#FFDFBA'
     }

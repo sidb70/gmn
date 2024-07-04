@@ -9,6 +9,7 @@ from .graph_types import (
     Edge,
     EdgeType,
     PARAMETRIC_LAYERS,
+    BIAS_NODE_TYPES,
     get_module_type
 )
 
@@ -65,6 +66,10 @@ class LayerFactory:
         layer_type = kwargs['layer_type']
         linear_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
 
+        bias_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, rel_index=-1, node_type=NodeType.LINEAR_BIAS))
+        linear_layer.add_node(bias_node)
+        start_node_id +=1
+
         for i, weights in enumerate(layer.weight.data):
             # weights corresponds to the weights for each input feature for the ith output neuron
             node_id = start_node_id + i
@@ -74,14 +79,24 @@ class LayerFactory:
             )
             linear_layer.add_node(node)
 
+            # connect prev layer nodes to current node
             for in_node, weight in zip(prev_layer.nodes, weights):
-
+                if in_node.features.node_type in BIAS_NODE_TYPES:
+                    continue
                 edge = Edge(
                     (in_node, node), 
                     EdgeFeatures(weight=weight, layer_num=layer_num, edge_type=EdgeType.LIN_WEIGHT)
                 )
                 linear_layer.add_edge(edge)
-        
+
+            # bias to node edge
+            edge = Edge(
+                (bias_node, node), 
+                EdgeFeatures(weight=layer.bias.data[i], layer_num=layer_num, edge_type=EdgeType.LIN_BIAS)
+            )
+            linear_layer.add_edge(edge)
+
+  
         return linear_layer
    
     def create_norm_layer(self, 
@@ -109,12 +124,14 @@ class LayerFactory:
 
         gamma, beta = module.weight, module.bias
         bn_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, 
-                                                   rel_index=0, 
+                                                   rel_index=-1, 
                                                    node_type=NodeType.NORM,))
         norm_layer.add_node(bn_node)
         # connect to all nodes in the previous layer
         i=0
         for node in prev_layer.nodes:
+            if node.features.node_type in BIAS_NODE_TYPES:
+                continue
             edge_tup = (bn_node, node)
             gamma_edge = Edge(edge_tup, EdgeFeatures(weight=gamma[i],
                                                             layer_num=layer_num,
@@ -152,9 +169,8 @@ class LayerFactory:
         prev_layer = kwargs['prev_layer']
         layer_type = kwargs['layer_type']
         conv_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
-
         
-            #iterate through the channels of the current layer, one new node per channel
+        #iterate through the channels of the current layer, one new node per channel
         for out_channel in range(module.out_channels):
             node_id = start_node_id + out_channel
             out_channel_node = Node(node_id, NodeFeatures(layer_num=layer_num, 
@@ -162,13 +178,13 @@ class LayerFactory:
                                                                 node_type=NodeType.CONV))
             conv_layer.add_node(out_channel_node)
             #iterate through previous layer nodes:
-            for in_node in prev_layer.nodes:
+            for idx, in_node_id in enumerate(prev_layer.nodes):
                 kernel = module.weight[out_channel]
                 j=0  # index of the weight in the kernel
                 #iterate through the weights of the current channel
                 weights = kernel.flatten()
                 for weight in weights:
-                    edge_tup = (in_node,out_channel_node)
+                    edge_tup = (in_node_id,out_channel_node)
                     edge = Edge(edge_tup, EdgeFeatures(weight=weight,
                                                         layer_num=layer_num,
                                                         edge_type=EdgeType.CONV_WEIGHT,
@@ -177,12 +193,11 @@ class LayerFactory:
                                                         pos_encoding_depth=out_channel))
                     conv_layer.add_edge(edge)
                     j+=1
+                bias_edge = Edge((in_node_id, out_channel_node), EdgeFeatures(weight=module.bias[out_channel],
+                                                                            layer_num=layer_num,
+                                                                            edge_type=EdgeType.CONV_BIAS))
+                conv_layer.add_edge(bias_edge)
 
-            
-                
-            
-        #TODO: add bias edges
-        
         return conv_layer
     
     def create_non_parametric_layer(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
