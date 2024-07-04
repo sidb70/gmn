@@ -13,5 +13,7 @@ Creating graph representations of neural networks, called parameter graphs. We t
 ## Where are we at
 Currently, we can successfully represent linear, convolutional, normalization, and activation layers in parameter graphs. We are in the process of generating the training data and developing the graph neural network to perform meta predictions.
 
+## Try it out!
+Simply clone the open graph_playground.ipynb to generate and visiualize parameter graphs from a neural network. 
 ## Interested? Join our [research updates list](https://forms.gle/mbPynMm5EMcZ5ZxWA)!
 Stay updated on our progress and get a behind-the-scenes look at our ambitious projects.
