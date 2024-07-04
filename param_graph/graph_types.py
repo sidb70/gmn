@@ -165,12 +165,17 @@ class ParameterGraph(nx.MultiDiGraph):
         '''
         return json.dumps(self.serialize())
     
-    def get_adjacency_matrix(self) -> torch.Tensor:
+    def get_edge_indices(self) -> torch.Tensor:
         '''
-        Get the adjacency matrix of the graph
+        Get the edge indices of the graph
+
+        Returns:
+        - torch.Tensor: (2, num_edges) tensor of edge indices where first row is source and second row is target
         '''
-        adj = nx.adjacency_matrix(self).toarray()
-        return torch.tensor(adj)
+        edge_tups = self.edges()
+        sources, targets = zip(*edge_tups)
+        edge_indices = torch.tensor([sources, targets])
+        return edge_indices
     def get_bipartite_adjacency_matrix(self) -> torch.Tensor:
         '''
         Get the bipartite adjacency matrix of the graph
