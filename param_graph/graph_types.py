@@ -1,10 +1,11 @@
 from enum import Enum
 import networkx as nx
 from pydantic import BaseModel
-from typing import Tuple
+from typing import Tuple, Iterator
 import json
 import os
 import torch.nn as nn
+import torch
 # ----------------- Enums -----------------
 
 class LayerType(Enum):
@@ -98,6 +99,8 @@ class NodeFeatures(BaseModel):
             'node_type': self.node_type.value
         }
         return ser
+    def __iter__(self) -> Iterator:
+        return iter([self.layer_num, self.rel_index, self.node_type.value])
 
 class EdgeFeatures(BaseModel):
     weight: float 
@@ -122,6 +125,15 @@ class EdgeFeatures(BaseModel):
             'pos_encoding_depth': self.pos_encoding_depth
         }
         return ser
+    def __iter__(self) -> Iterator:
+        return iter([
+                    self.weight, 
+                    self.layer_num,
+                    self.edge_type.value,
+                    self.pos_encoding_x,
+                    self.pos_encoding_y,
+                    self.pos_encoding_depth
+                    ])
 # ----------------- Base Classes -----------------
 class ParameterGraph: pass
 class Layer(ParameterGraph): pass
@@ -152,6 +164,27 @@ class ParameterGraph(nx.MultiDiGraph):
         Serialize the graph into a JSON string
         '''
         return json.dumps(self.serialize())
+    
+    def get_adjacency_matrix(self) -> torch.Tensor:
+        '''
+        Get the adjacency matrix of the graph
+        '''
+        adj = nx.adjacency_matrix(self).toarray()
+        return torch.tensor(adj)
+    def get_node_features(self, batch_size=128) -> torch.Tensor:
+        tensors = []
+        for i in range(0, self.number_of_nodes(), batch_size):
+            batch = [list(node_obj.features) for node_id, node_obj in self.nodes(data='node_obj')]
+            batch_tensor = torch.tensor(batch)
+            tensors.append(batch_tensor)
+        return torch.cat(tensors)
+    def get_edge_features(self, batch_size=128) -> torch.Tensor:
+        tensors = []
+        for i in range(0, self.number_of_edges(), batch_size):
+            batch = [list(edge_obj.features) for source, target, edge_obj in self.edges(data='edge_obj')]
+            batch_tensor = torch.tensor(batch)
+            tensors.append(batch_tensor)
+        return torch.cat(tensors)
     def save(self, path: str) -> None:
         '''
         Save the graph to a JSON file
@@ -246,3 +279,6 @@ if __name__=='__main__':
     edge_json = json.dumps(testedge.serialize())
     print("Node serialized: ",node_json)    
     print("Edge serialized: ",edge_json)
+
+    print(list(testnode.features))
+    print(list(testedge.features))

@@ -32,6 +32,7 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
         layers.append(layer)
         if layer.layer_type in PARAMETRIC_LAYERS:
             prev_layer = layer
+        print("added layer: ", layer_num, " with ",len(layer.get_nodes()), "nodes and", len(layer.get_edges()), " edges")
         layer_num += 1
     global_graph = ParameterGraph()
     for layer in layers:
