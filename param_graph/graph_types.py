@@ -171,6 +171,14 @@ class ParameterGraph(nx.MultiDiGraph):
         '''
         adj = nx.adjacency_matrix(self).toarray()
         return torch.tensor(adj)
+    def get_bipartite_adjacency_matrix(self) -> torch.Tensor:
+        '''
+        Get the bipartite adjacency matrix of the graph
+        '''
+        assert nx.is_bipartite(self), "Graph is not bipartite"
+        set_a, set_b = nx.bipartite.sets(self)
+        adj = nx.bipartite.biadjacency_matrix(self, row_order=set_a, column_order=set_b).toarray()
+        return torch.tensor(adj)
     def get_node_features(self, batch_size=128) -> torch.Tensor:
         tensors = []
         for i in range(0, self.number_of_nodes(), batch_size):
