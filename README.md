@@ -17,3 +17,5 @@ Currently, we can successfully represent linear, convolutional, normalization, a
 Simply clone the open graph_playground.ipynb to generate and visiualize parameter graphs from a neural network. 
 ## Interested? Join our [research updates list](https://forms.gle/mbPynMm5EMcZ5ZxWA)!
 Stay updated on our progress and get a behind-the-scenes look at our ambitious projects.
+
+![](https://github.com/sidb70/gmn/blob/main/media/conv_param_graph_demo.gif)
