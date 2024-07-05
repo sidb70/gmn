@@ -17,13 +17,11 @@ class EdgeModel:
     '''
     from https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.nn.models.MetaLayer.html
     '''
-    def __init__(self, in_dim, out_dim):
+    def __init__(self, in_dim, out_dim, use_activation=True):
         super().__init__()
-        self.phi_e = nn.Sequential(
-                                   nn.Linear(in_dim, out_dim * 2), 
-                                   nn.ReLU(),
-                                   nn.Linear(out_dim * 2, out_dim),
-                                   )
+        self.phi_e = nn.Sequential(nn.Linear(in_dim, out_dim),
+                                      nn.ReLU() if use_activation else nn.Identity())
+                                   
     def forward(self, src, dst, edge_attr, u, batch):
         ''''
         Forward pass for edge update (phi^e)
@@ -34,7 +32,7 @@ class EdgeModel:
         - batch: [E] with max entry B - 1.
         '''
         out = torch.cat([src, dst, edge_attr, u[batch]], 1)
-        return self.edge_mlp(out)
+        return self.phi_e(out)
 
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
@@ -43,13 +41,17 @@ class NodeModel:
     '''
     from https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.nn.models.MetaLayer.html
     '''
-    def __init__(self, in_dim, out_dim):
+    def __init__(self, in_dim, out_dim, use_activation=True):
         super().__init__()
-        self.phi_v = nn.Sequential(
-                                   nn.Linear(in_dim, out_dim * 2), 
-                                   nn.ReLU(),
-                                   nn.Linear(out_dim * 2, out_dim),
-                                   )
+        self.node_mlp_1 = nn.Sequential(
+            nn.Linear(in_dim, out_dim),
+            nn.ReLU() if use_activation else nn.Identity()
+        )
+        self.node_mlp_2 = nn.Sequential(
+            nn.Linear(in_dim , out_dim),
+            nn.ReLU() if use_activation else nn.Identity()
+        )
+                                   
     def forward(self, node_feats, edge_indices, edge_feats, u, batch)-> torch.Tensor:
         '''
         Forward pass for node update (phi^v)
@@ -99,7 +101,25 @@ class NodeModel:
 #         return self.forward(*args, **kwargs)
 
 class BaseMPNN:
-    pass
+    def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim, node_out_dim, edge_out_dim):
+        super().__init__()
+        edge_in_dim = 2*node_hidden_dim + edge_feat_dim
+        node_in_dim = node_feat_dim + edge_hidden_dim
+        self.meta_layers = nn.ModuleList(
+            [
+                MetaLayer(EdgeModel(edge_in_dim, edge_hidden_dim), NodeModel(node_in_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(edge_hidden_dim, edge_hidden_dim), NodeModel(node_hidden_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(edge_hidden_dim, edge_out_dim), NodeModel(node_hidden_dim, node_out_dim))
+            ])
+        self.node_norm = nn.BatchNorm1d(node_hidden_dim)
+        self.edge_norm = nn.BatchNorm1d(edge_hidden_dim)
+
+    def forward(self, x, edge_index, edge_attr, u, batch):
+        for layer in self.meta_layers:
+            x, edge_attr, u = layer(x, edge_index, edge_attr, u, batch)
+            x = self.node_norm(x)
+            edge_attr = self.edge_norm(edge_attr)
+        return x, edge_attr, u
 if __name__=='__main__':
     # edge test
     edge_model = EdgeModel(7, 16)
