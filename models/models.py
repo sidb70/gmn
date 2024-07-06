@@ -31,8 +31,10 @@ class EdgeModel:
         - u: [B, F_u], where B is the number of graphs.
         - batch: [E] with max entry B - 1.
         '''
-        out = torch.cat([src, dst, edge_attr, u[batch]], 1)
-        return self.phi_e(out)
+        print("inputs: ", 'src: ', src.shape, 'dst: ', dst.shape, 'edge_attr: ', edge_attr.shape)
+        data = torch.cat([src, dst, edge_attr], 1)
+        print("called edge model, data shape: ", data.shape)
+        return self.phi_e(data)
 
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
@@ -63,12 +65,13 @@ class NodeModel:
         - batch: [N] with max entry B - 1.
         '''
         row, col = edge_indices
-        out = torch.cat([node_feats[row], edge_feats], dim=1)
-        out = self.node_mlp_1(out)
-        out = scatter(out, col, dim=0, dim_size=node_feats.size(0),
+        data = torch.cat([node_feats[row], edge_feats], dim=1)
+        data = self.node_mlp_1(data)
+        data = scatter(data, col, dim=0, dim_size=node_feats.size(0),
                       reduce='mean')
-        out = torch.cat([node_feats, out, u[batch]], dim=1)
-        return self.node_mlp_2(out)
+        data = torch.cat([node_feats, data], dim=1)
+        print("called node model, data shape: ", data.shape)
+        return self.node_mlp_2(data)
     
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
@@ -103,28 +106,35 @@ class NodeModel:
 class BaseMPNN:
     def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim, node_out_dim, edge_out_dim):
         super().__init__()
-        edge_in_dim = 2*node_hidden_dim + edge_feat_dim
+        edge_in_dim = 2*node_feat_dim + edge_feat_dim
         node_in_dim = node_feat_dim + edge_hidden_dim
         self.meta_layers = nn.ModuleList(
             [
                 MetaLayer(EdgeModel(edge_in_dim, edge_hidden_dim), NodeModel(node_in_dim, node_hidden_dim)),
-                MetaLayer(EdgeModel(edge_hidden_dim, edge_hidden_dim), NodeModel(node_hidden_dim, node_hidden_dim)),
-                MetaLayer(EdgeModel(edge_hidden_dim, edge_out_dim), NodeModel(node_hidden_dim, node_out_dim))
+                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim), NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_out_dim), NodeModel(node_hidden_dim + edge_out_dim, node_out_dim)),
             ])
         self.node_norm = nn.BatchNorm1d(node_hidden_dim)
         self.edge_norm = nn.BatchNorm1d(edge_hidden_dim)
+        
 
     def forward(self, x, edge_index, edge_attr, u, batch):
-        for layer in self.meta_layers:
-            x, edge_attr, u = layer(x, edge_index, edge_attr, u, batch)
-            x = self.node_norm(x)
-            edge_attr = self.edge_norm(edge_attr)
-        return x, edge_attr, u
+        for i,layer in enumerate(self.meta_layers):
+            print("calling layer: ", i)
+            x, edge_attr, u = layer(x, edge_index, edge_attr,  batch)
+            if i < len(self.meta_layers) - 1:
+                print('calling norm layers')
+                x = self.node_norm(x)
+                edge_attr = self.edge_norm(edge_attr)
+        return x, edge_attr
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
 if __name__=='__main__':
     # edge test
-    edge_model = EdgeModel(7, 16)
+   
     edge_feats = torch.randn(5, 3)
     src_feats = torch.randn(5, 2)
     dest_feats = torch.randn(5, 2)
-    e_hat = edge_model(edge_feats, src_feats, dest_feats)
+    edge_model = EdgeModel(7 + 4, 16)
+    e_hat = edge_model(src_feats, dest_feats, edge_feats, torch.randn(3, 4), torch.tensor([0, 0, 1, 1, 2]))
     assert e_hat.shape == (5, 16)
