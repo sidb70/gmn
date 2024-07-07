@@ -168,6 +168,14 @@ class ParameterGraph(nx.MultiDiGraph):
         Serialize the graph into a JSON string
         '''
         return json.dumps(self.serialize())
+    def get_feature_tensors(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        '''
+        Get the node features, edge features, and edge indices as tensors
+        '''
+        x = self.get_node_features()
+        edge_index = self.get_edge_indices()
+        edge_attr = self.get_edge_features()
+        return x, edge_index, edge_attr
     
     def get_edge_indices(self) -> torch.Tensor:
         '''
@@ -178,7 +186,7 @@ class ParameterGraph(nx.MultiDiGraph):
         '''
         edge_tups = self.edges()
         sources, targets = zip(*edge_tups)
-        edge_indices = torch.tensor([sources, targets])
+        edge_indices = torch.tensor([sources, targets], dtype=torch.int64)
         return edge_indices
     def get_bipartite_adjacency_matrix(self) -> torch.Tensor:
         '''
