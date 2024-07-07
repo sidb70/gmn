@@ -41,6 +41,10 @@ function App() {
           But this is just the beginning. We're in the lab, working hard to make this a reality.
         </p>
         <p>
+          <a href="https://github.com/sidb70/gmn" className="author-link">GitHub,</a>
+          <a href="https://www.twitter.com/antilect_ai/" className="author-link">X/Twitter</a>  
+        </p>
+        <p>
           <a href="https://www.linkedin.com/in/sid-bhat/" className="author-link">Siddhartha Bhattacharya,</a>
           <a href="https://www.linkedin.com/in/uzair-m/" className="author-link">Uzair Mohammed,</a> 
           <a href="https://www.linkedin.com/in/daniel-helo-puccini-a3779b242/" className="author-link">Daniel Helo</a> 
