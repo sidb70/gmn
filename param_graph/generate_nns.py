@@ -17,13 +17,14 @@ def generate_random_cnn(in_dim=32, in_channels=3, out_dim=10) -> nn.Module:
 
   """
 
-  layers = [] # list of tuples (layer, out_shape)
+  layers = []  # list of tuples (layer, out_shape)
 
   while True:
     if len(layers) == 0:
       out_channels = 2**torch.randint(4, 8, (1,)).item()
-      layers.append((nn.Conv2d(in_channels, out_channels, 3), (out_channels, in_dim-2, in_dim-2)))
-      
+      layers.append((nn.Conv2d(in_channels, out_channels, 3),
+                    (out_channels, in_dim-2, in_dim-2)))
+
     elif isinstance(layers[-1][0], nn.Conv2d):
       # batch norm layer
       n_features = layers[-1][0].out_channels
@@ -32,24 +33,52 @@ def generate_random_cnn(in_dim=32, in_channels=3, out_dim=10) -> nn.Module:
 
       # randomly either add another conv layer or switch to linear layers
       if torch.rand(1).item() < 0.7 or \
-        layers[-1][1][1] < 3 or layers[-1][1][2] < 3: # check if out shape is smaller than the kernel size
+              layers[-1][1][1] < 3 or layers[-1][1][2] < 3:  # check if out shape is smaller than the kernel size
 
         out_channels = 2**torch.randint(4, 8, (1,)).item()
-        layers.append((nn.Conv2d(layers[-1][1][0], out_channels, 3), (out_channels, layers[-1][1][1]-2, layers[-1][1][2]-2)))
+        layers.append((nn.Conv2d(layers[-1][1][0], out_channels, 3),
+                      (out_channels, layers[-1][1][1]-2, layers[-1][1][2]-2)))
       else:
         # begin linear layers
-        layers.append((nn.Flatten(), (layers[-1][1][0]*layers[-1][1][1]*layers[-1][1][2],)))
+        layers.append(
+            (nn.Flatten(), (layers[-1][1][0]*layers[-1][1][1]*layers[-1][1][2],)))
         continue
 
     elif isinstance(layers[-1][0], nn.Flatten) or isinstance(layers[-1][0], nn.ReLU):
       # linear layer
       if torch.rand(1).item() < 0.5:
         out_features = 2**torch.randint(4, 8, (1,)).item()
-        layers.append((nn.Linear(layers[-1][1][0], out_features), (out_features,)))
+        layers.append(
+            (nn.Linear(layers[-1][1][0], out_features), (out_features,)))
         layers.append((nn.ReLU(), layers[-1][1]))
       else:
         layers.append((nn.Linear(layers[-1][1][0], out_dim), (out_dim,)))
         break
 
-  print([layer[1] for layer in layers])
+  return nn.Sequential(*[layer[0] for layer in layers])
+
+
+def generate_random_mlp(in_dim=32, out_dim=10):
+
+  layers = []  # list of tuples (layer, out_shape)
+
+  while True:
+    if len(layers) == 0:
+      # add input layer
+      out_features = 2**torch.randint(4, 8, (1,)).item()
+      layers.append((nn.Linear(in_dim, out_features), (out_features,)))
+      layers.append((nn.ReLU(), layers[-1][1]))
+
+    elif isinstance(layers[-1][0], nn.ReLU):
+
+      # randomly either add another linear layer or add final layer
+      if torch.rand(1).item() < 0.5:
+        out_features = 2**torch.randint(4, 10, (1,)).item()
+        layers.append(
+            (nn.Linear(layers[-1][1][0], out_features), (out_features,)))
+        layers.append((nn.ReLU(), layers[-1][1]))
+      else:
+        layers.append((nn.Linear(layers[-1][1][0], out_dim), (out_dim,)))
+        break
+
   return nn.Sequential(*[layer[0] for layer in layers])
