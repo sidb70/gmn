@@ -162,3 +162,4 @@ gmn_lim/
 *.DS_Store
 .ssh/
 node_modules/
+temp.ipynb
