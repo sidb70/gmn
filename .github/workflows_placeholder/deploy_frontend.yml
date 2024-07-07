@@ -1,0 +1,33 @@
+name: deploy frontend
+
+on: 
+  workflow_run:
+    workflows: ["deploy backend"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    environment: prod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout/@v3
+
+      - name: build
+      # go to the graph-app/frontend directory and run the build script
+        run: |
+          cd graph-app/frontend
+          npm install
+          npm run build
+
+      - name: copy build files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PK }}
+          source: graph-app/frontend/build
+          target: /${{ secrets.DROPLET_USER }}/app
+          rm: true
+
+
