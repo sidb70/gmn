@@ -59,6 +59,16 @@ def generate_random_cnn(in_dim=32, in_channels=3, out_dim=10) -> nn.Module:
 
 
 def generate_random_mlp(in_dim=32, out_dim=10):
+  """
+  creates a sequential model with random number of linear layers and random number of units in each layer
+
+  Args:
+  - in_dim: int, the number of input features
+  - out_dim: int, the number of output features
+
+  Returns:
+  - model: nn.Module, the randomly generated model
+  """
 
   layers = []  # list of tuples (layer, out_shape)
 
@@ -72,7 +82,7 @@ def generate_random_mlp(in_dim=32, out_dim=10):
     elif isinstance(layers[-1][0], nn.ReLU):
 
       # randomly either add another linear layer or add final layer
-      if torch.rand(1).item() < 0.5:
+      if torch.rand(1).item() < 0.8:
         out_features = 2**torch.randint(4, 10, (1,)).item()
         layers.append(
             (nn.Linear(layers[-1][1][0], out_features), (out_features,)))
