@@ -14,12 +14,9 @@ function App() {
       <div className="container">
         <h1>antilect</h1>
         <h2>understanding the weight spaces of neural networks</h2>
-        <h4>
-          <a href="https://www.linkedin.com/in/sid-bhat/" className="author-link">Siddhartha Bhattacharya,</a>
-          <a href="https://www.linkedin.com/in/uzair-m/" className="author-link">Uzair Mohammed,</a> 
-          <a href="https://www.linkedin.com/in/daniel-helo-puccini-a3779b242/" className="author-link">Daniel Helo,</a> 
-        </h4>
-        
+        <h3>
+          <a target="_blank" rel="noopener noreferrer" href="https://forms.gle/Zsr67eJ6RzrgyKMD9">Research Updates Email List</a>
+        </h3>
         <p>The graphs shown below are neural networks represented as parameter graphs from 
         <a href="https://arxiv.org/pdf/2312.04501" className='inline-link'>Graph Metanetworks for Processing Diverse Neural Architectures</a>.
           These graphs efficiently create permutation equivariant representations of neural networks. By feeding these graph representations into a graph neural network (GNN), we can compare and analyze different network architectures.
@@ -36,6 +33,11 @@ function App() {
 
         <p>
           But this is just the beginning. We're in the lab, working hard to make this a reality.
+        </p>
+        <p>
+          <a href="https://www.linkedin.com/in/sid-bhat/" className="author-link">Siddhartha Bhattacharya,</a>
+          <a href="https://www.linkedin.com/in/uzair-m/" className="author-link">Uzair Mohammed,</a> 
+          <a href="https://www.linkedin.com/in/daniel-helo-puccini-a3779b242/" className="author-link">Daniel Helo,</a> 
         </p>
         <PlotlyGraph url={ `http://${SERVER_IP}:8000/plot/1` } title="Multi-Layer Perceptron" />
         <PlotlyGraph url={`http://${SERVER_IP}:8000/plot/2`} title="Convolutional Neural Network" />
