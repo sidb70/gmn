@@ -172,12 +172,12 @@ class ParameterGraph(nx.MultiDiGraph):
         '''
         Get the node features, edge features, and edge indices as tensors
         '''
-        x = self.get_node_features()
-        edge_index = self.get_edge_indices()
-        edge_attr = self.get_edge_features()
+        x = self._get_node_features()
+        edge_index = self._get_edge_indices()
+        edge_attr = self._get_edge_features()
         return x, edge_index, edge_attr
     
-    def get_edge_indices(self) -> torch.Tensor:
+    def _get_edge_indices(self) -> torch.Tensor:
         '''
         Get the edge indices of the graph
 
@@ -196,14 +196,14 @@ class ParameterGraph(nx.MultiDiGraph):
         set_a, set_b = nx.bipartite.sets(self)
         adj = nx.bipartite.biadjacency_matrix(self, row_order=set_a, column_order=set_b).toarray()
         return torch.tensor(adj)
-    def get_node_features(self, batch_size=128) -> torch.Tensor:
+    def _get_node_features(self, batch_size=128) -> torch.Tensor:
         tensors = []
         for i in range(0, self.number_of_nodes(), batch_size):
             batch = [list(node_obj.features) for node_id, node_obj in self.nodes(data='node_obj')]
             batch_tensor = torch.tensor(batch)
             tensors.append(batch_tensor)
         return torch.cat(tensors)
-    def get_edge_features(self, batch_size=128) -> torch.Tensor:
+    def _get_edge_features(self, batch_size=128) -> torch.Tensor:
         tensors = []
         for i in range(0, self.number_of_edges(), batch_size):
             batch = [list(edge_obj.features) for source, target, edge_obj in self.edges(data='edge_obj')]
