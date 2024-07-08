@@ -16,7 +16,7 @@ function App() {
         <h2>understanding the weight spaces of neural networks</h2>
         <h3>
           <p>
-            <a target="_blank" rel="noopener noreferrer" href="https://forms.gle/Zsr67eJ6RzrgyKMD9">Research Updates Email List</a>
+            <a target="_blank" rel="noopener noreferrer" href="https://forms.gle/HBjmNWd2NiujYaTc6">Research Updates Email List</a>
           </p>
           <p>
             <a target="_blank" rel="noopener noreferrer" href="https://github.com/sidb70/gmn">Source Code</a>
