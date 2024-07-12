@@ -204,12 +204,9 @@ class ParameterGraph(nx.MultiDiGraph):
             tensors.append(batch_tensor)
         return torch.cat(tensors)
     def _get_edge_features(self, batch_size=128) -> torch.Tensor:
-        tensors = []
-        for i in range(0, self.number_of_edges(), batch_size):
-            batch = [list(edge_obj.features) for source, target, edge_obj in self.edges(data='edge_obj')]
-            batch_tensor = torch.tensor(batch)
-            tensors.append(batch_tensor)
-        return torch.cat(tensors)
+        feats = [list(edge_obj.features) for source, target, edge_obj in self.edges(data='edge_obj')]
+        feats = torch.tensor(feats)
+        return feats
     def save(self, path: str) -> None:
         '''
         Save the graph to a JSON file

@@ -31,8 +31,8 @@ class EdgeModel(nn.Module):
         - u: [B, F_u], where B is the number of graphs.
         - batch: [E] with max entry B - 1.
         '''
-        print("called edge model")
-        print("edge forward src: ", src.shape, "dst: ", dst.shape, "edge_attr: ", edge_attr.shape)
+        # print("called edge model")
+        # print("edge forward src: ", src.shape, "dst: ", dst.shape, "edge_attr: ", edge_attr.shape)
         data = torch.cat([src, dst, edge_attr], 1)
         return self.phi_e(data)
     
@@ -67,7 +67,7 @@ class NodeModel(nn.Module):
         data = scatter(data, col, dim=0, dim_size=x.size(0),
                       reduce='mean')
         data = torch.cat([x, data], dim=1)
-        print("called node model, data shape: ", data.shape)
+        # print("called node model, data shape: ", data.shape)
         return self.node_mlp_2(data)
     
 
@@ -114,21 +114,23 @@ class BaseMPNN(nn.Module):
         
 
     def forward(self, x, edge_index, edge_attr, u=None, batch=None):
-        print("Base MPNN forward")
-        print("x shape", x.shape)   
-        print("edge index shape", edge_index.shape)
-        print("edge attr shape", edge_attr.shape)
+        # print("Base MPNN forward")
+        # print("x shape", x.shape)   
+        # print("edge index shape", edge_index.shape)
+        # print("edge attr shape", edge_attr.shape)
+
+        ## can have multi 
 
         for i,layer in enumerate(self.meta_layers):
-            print("calling layer: ", i)
+            # print("calling layer: ", i)
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
-                print('calling norm layers')
+                # print('calling norm layers')
                 x = self.node_norm(x)
                 edge_attr = self.edge_norm(edge_attr)
         node_attr_readout = torch.mean(x, dim=0).unsqueeze(0)
         edge_attr_readout = torch.mean(edge_attr, dim=0).unsqueeze(0)
-        print("Node attr readout shape", node_attr_readout.shape, "edge attr readout shape", edge_attr_readout.shape)
+        # print("Node attr readout shape", node_attr_readout.shape, "edge attr readout shape", edge_attr_readout.shape)
         meta_out = torch.cat([node_attr_readout, edge_attr_readout], dim=1)
         return self.regression(meta_out)
 if __name__=='__main__':
