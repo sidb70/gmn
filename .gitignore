@@ -163,3 +163,4 @@ gmn_lim/
 .ssh/
 node_modules/
 temp.ipynb
+data/
