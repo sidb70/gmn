@@ -1,0 +1,179 @@
+aiohttp==3.9.5
+aiosignal==1.3.1
+alabaster @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/alabaster/alabaster-0.7.13
+annotated-types==0.7.0
+appdirs @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/appdirs/appdirs-1.4.4
+asn1crypto @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/asn1crypto/asn1crypto-1.5.1
+atomicwrites @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/atomicwrites/atomicwrites-1.4.1
+attrs @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/attrs/attrs-23.1.0
+Babel @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/Babel/Babel-2.12.1
+backports.entry-points-selectable @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/backportsentrypointsselectable/backports.entry_points_selectable-1.2.0
+backports.functools-lru-cache @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/backportsfunctools_lru_cache/backports.functools_lru_cache-1.6.5
+bitstring @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/bitstring/bitstring-4.0.2
+blist @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/blist/blist-1.3.6
+CacheControl @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/CacheControl/CacheControl-0.12.14
+cachy @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/cachy/cachy-0.3.0
+certifi @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/certifi/certifi-2023.5.7
+cffi @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/cffi/cffi-1.15.1
+chardet @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/chardet/chardet-5.1.0
+charset-normalizer @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/charsetnormalizer/charset-normalizer-3.1.0
+chart-studio==1.1.0
+cleo @ file:///mnt/research/helpdesk/src/p/Python-bundle-PyPI/extensions/cleo-2.0.1-py3-none-any.whl#sha256=6eb133670a3ed1f3b052d53789017b6e50fca66d1287e6e6696285f4cb8ea448
+click @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/click/click-8.1.3
+cloudpickle @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/cloudpickle/cloudpickle-2.2.1
+colorama @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/colorama/colorama-0.4.6
+commonmark @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/commonmark/commonmark-0.9.1
+contourpy==1.2.1
+crashtest @ file:///mnt/research/helpdesk/src/p/Python-bundle-PyPI/extensions/crashtest-0.4.1-py3-none-any.whl#sha256=8d23eac5fa660409f57472e3851dab7ac18aba459a8d19cbbba86d3d5aecd2a5
+cryptography @ file:///tmp/grosscra/easybuild/easybuild/build/cryptography/41.0.1/GCCcore-12.3.0/cryptography-41.0.1
+cycler==0.12.1
+Cython @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/Cython/Cython-0.29.35
+decorator @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/decorator/decorator-5.1.1
+distlib @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/distlib/distlib-0.3.6
+distro @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/distro/distro-1.8.0
+docopt @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/docopt/docopt-0.6.2
+docutils @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/docutils/docutils-0.20.1
+doit @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/doit/doit-0.36.0
+dulwich @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/dulwich/dulwich-0.21.5
+ecdsa @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/ecdsa/ecdsa-0.18.0
+editables @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/editables/editables-0.3
+exceptiongroup @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/exceptiongroup/exceptiongroup-1.1.1
+execnet @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/execnet/execnet-1.9.0
+filelock @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/filelock/filelock-3.12.2
+fonttools==4.53.1
+frozenlist==1.4.1
+fsspec @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/fsspec/fsspec-2023.6.0
+future @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/future/future-0.18.3
+glob2 @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/glob2/glob2-0.7
+html5lib @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/html5lib/html5lib-1.1
+idna @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/idna/idna-3.4
+igraph==0.11.6
+imagesize @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/imagesize/imagesize-1.4.1
+importlib-metadata @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/importlib_metadata/importlib_metadata-6.7.0
+importlib-resources @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/importlib_resources/importlib_resources-5.12.0
+iniconfig @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/iniconfig/iniconfig-2.0.0
+intervaltree @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/intervaltree/intervaltree-3.1.0
+intreehooks @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/intreehooks/intreehooks-1.0
+ipaddress @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/ipaddress/ipaddress-1.0.23
+jaraco.classes @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/jaracoclasses/jaraco.classes-3.2.3
+jeepney @ file:///mnt/research/helpdesk/src/p/Python-bundle-PyPI/extensions/jeepney-0.8.0-py3-none-any.whl#sha256=c0a454ad016ca575060802ee4d590dd912e35c122fa04e70306de3d076cce755
+Jinja2 @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/Jinja2/Jinja2-3.1.2
+joblib @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/joblib/joblib-1.2.0
+jsonschema @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/jsonschema/jsonschema-4.17.3
+keyring @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/keyring/keyring-23.13.1
+keyrings.alt @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/keyringsalt/keyrings.alt-4.2.0
+kiwisolver==1.4.5
+liac-arff @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/liacarff/liac-arff-2.5.0
+lockfile @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/lockfile/lockfile-0.12.2
+markdown-it-py @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/markdownitpy/markdown-it-py-3.0.0
+MarkupSafe @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/MarkupSafe/MarkupSafe-2.1.3
+matplotlib==3.9.1
+mdurl @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/mdurl/mdurl-0.1.2
+mock @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/mock/mock-5.0.2
+more-itertools @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/moreitertools/more-itertools-9.1.0
+mpmath==1.3.0
+msgpack @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/msgpack/msgpack-1.0.5
+multidict==6.0.5
+netaddr @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/netaddr/netaddr-0.8.0
+netifaces @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/netifaces/netifaces-0.11.0
+networkx==3.3
+numpy==2.0.0
+nvidia-cublas-cu12==12.1.3.1
+nvidia-cuda-cupti-cu12==12.1.105
+nvidia-cuda-nvrtc-cu12==12.1.105
+nvidia-cuda-runtime-cu12==12.1.105
+nvidia-cudnn-cu12==8.9.2.26
+nvidia-cufft-cu12==11.0.2.54
+nvidia-curand-cu12==10.3.2.106
+nvidia-cusolver-cu12==11.4.5.107
+nvidia-cusparse-cu12==12.1.0.106
+nvidia-nccl-cu12==2.20.5
+nvidia-nvjitlink-cu12==12.5.82
+nvidia-nvtx-cu12==12.1.105
+packaging @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/packaging/packaging-23.1
+pandas==2.2.2
+pastel @ file:///mnt/research/helpdesk/src/p/Python-bundle-PyPI/extensions/pastel-0.2.1-py2.py3-none-any.whl#sha256=4349225fcdf6c2bb34d483e523475de5bb04a5c10ef711263452cb37d7dd4364
+pathlib2 @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pathlib2/pathlib2-2.3.7.post1
+pathspec @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pathspec/pathspec-0.11.1
+pbr @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pbr/pbr-5.11.1
+pexpect @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pexpect/pexpect-4.8.0
+pillow==10.4.0
+pkginfo @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pkginfo/pkginfo-1.9.6
+platformdirs @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/platformdirs/platformdirs-3.8.0
+plotly==5.22.0
+pluggy @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pluggy/pluggy-1.2.0
+pooch @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pooch/pooch-1.7.0
+psutil @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/psutil/psutil-5.9.5
+ptyprocess @ file:///mnt/research/helpdesk/src/p/Python-bundle-PyPI/extensions/ptyprocess-0.7.0-py2.py3-none-any.whl#sha256=4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35
+py @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/py/py-1.11.0
+py-expression-eval @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/py_expression_eval/py_expression_eval-0.3.14
+pyasn1 @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pyasn1/pyasn1-0.5.0
+pycparser @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pycparser/pycparser-2.21
+pycryptodome @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pycryptodome/pycryptodome-3.18.0
+pydantic==2.8.2
+pydantic_core==2.20.1
+pydevtool @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pydevtool/pydevtool-0.3.0
+Pygments @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/Pygments/Pygments-2.15.1
+pylev @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pylev/pylev-1.4.0
+PyNaCl @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/PyNaCl/PyNaCl-1.5.0
+pyparsing @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pyparsing/pyparsing-3.1.0
+pyrsistent @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pyrsistent/pyrsistent-0.19.3
+pytest @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pytest/pytest-7.4.0
+pytest-xdist @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pytestxdist/pytest-xdist-3.3.1
+python-dateutil @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pythondateutil/python-dateutil-2.8.2
+pytoml @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pytoml/pytoml-0.1.21
+pytz @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/pytz/pytz-2023.3
+rapidfuzz @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/rapidfuzz/rapidfuzz-2.15.1
+regex @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/regex/regex-2023.6.3
+requests @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/requests/requests-2.31.0
+requests-toolbelt @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/requeststoolbelt/requests-toolbelt-1.0.0
+retrying==1.3.4
+rich @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/rich/rich-13.4.2
+rich-click @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/richclick/rich-click-1.6.1
+scandir @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/scandir/scandir-1.10.0
+scikit-learn==1.5.1
+scipy==1.14.0
+SecretStorage @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/SecretStorage/SecretStorage-3.3.3
+semantic-version @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/semantic_version/semantic_version-2.10.0
+shellingham @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/shellingham/shellingham-1.5.0.post1
+simplegeneric @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/simplegeneric/simplegeneric-0.8.1
+simplejson @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/simplejson/simplejson-3.19.1
+six @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/six/six-1.16.0
+snowballstemmer @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/snowballstemmer/snowballstemmer-2.2.0
+sortedcontainers @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sortedcontainers/sortedcontainers-2.4.0
+Sphinx @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/Sphinx/Sphinx-7.0.1
+sphinx-bootstrap-theme @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxbootstraptheme/sphinx-bootstrap-theme-0.8.1
+sphinxcontrib-applehelp @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribapplehelp/sphinxcontrib-applehelp-1.0.4
+sphinxcontrib-devhelp @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribdevhelp/sphinxcontrib-devhelp-1.0.2
+sphinxcontrib-htmlhelp @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribhtmlhelp/sphinxcontrib-htmlhelp-2.0.1
+sphinxcontrib-jsmath @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribjsmath/sphinxcontrib-jsmath-1.0.1
+sphinxcontrib-qthelp @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribqthelp/sphinxcontrib-qthelp-1.0.3
+sphinxcontrib-serializinghtml @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribserializinghtml/sphinxcontrib-serializinghtml-1.1.5
+sphinxcontrib-websupport @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/sphinxcontribwebsupport/sphinxcontrib-websupport-1.2.4
+sympy==1.13.0
+tabulate @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/tabulate/tabulate-0.9.0
+tenacity==8.5.0
+texttable==1.7.0
+threadpoolctl @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/threadpoolctl/threadpoolctl-3.1.0
+toml @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/toml/toml-0.10.2
+tomli @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/tomli/tomli-2.0.1
+tomli_w @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/tomli_w/tomli_w-1.0.0
+tomlkit @ file:///mnt/research/helpdesk/src/p/Python-bundle-PyPI/extensions/tomlkit-0.11.8-py3-none-any.whl#sha256=8c726c4c202bdb148667835f68d68780b9a003a9ec34167b6c673b38eff2a171
+torch==2.3.1
+torch_cluster==1.6.3+pt23cu121
+torch_geometric==2.5.3
+torch_scatter==2.1.2+pt23cu121
+torch_sparse==0.6.18+pt23cu121
+torch_spline_conv==1.2.2+pt23cu121
+tqdm==4.66.4
+typing_extensions==4.12.2
+tzdata==2024.1
+ujson @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/ujson/ujson-5.8.0
+urllib3 @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/urllib3/urllib3-1.26.16
+virtualenv @ file:///tmp/grosscra/easybuild/easybuild/build/virtualenv/20.23.1/GCCcore-12.3.0/virtualenv/virtualenv-20.23.1
+wcwidth @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/wcwidth/wcwidth-0.2.6
+webencodings @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/webencodings/webencodings-0.5.1
+xlrd @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/xlrd/xlrd-2.0.1
+yarl==1.9.4
+zipfile36 @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/zipfile36/zipfile36-0.1.3
+zipp @ file:///tmp/fullarda/easybuild/easybuild/build/PythonbundlePyPI/2023.06/GCCcore-12.3.0/zipp/zipp-3.15.0
