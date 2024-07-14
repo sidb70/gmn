@@ -98,7 +98,7 @@ class NodeModel(nn.Module):
 #         return self.forward(*args, **kwargs)
 
 class BaseMPNN(nn.Module):
-    def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim):
+    def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim, device='cuda'):
         super().__init__()
         edge_in_dim = 2*node_feat_dim + edge_feat_dim
         node_in_dim = node_feat_dim + edge_hidden_dim
@@ -111,7 +111,8 @@ class BaseMPNN(nn.Module):
         self.node_norm = nn.BatchNorm1d(node_hidden_dim)
         self.edge_norm = nn.BatchNorm1d(edge_hidden_dim)
         self.regression = nn.Linear(node_hidden_dim + edge_hidden_dim, 1)
-        
+        self.device=device
+        self.to(self.device)
 
     def forward(self, x, edge_index, edge_attr, u=None, batch=None):
         # print("Base MPNN forward")
