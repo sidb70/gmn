@@ -1,5 +1,4 @@
-from models.models import EdgeModel, NodeModel, BaseMPNN
-from param_graph.seq_to_net import seq_to_net
+from models.models import BaseMPNN
 from data_loader import get_dataset
 import torch.nn as nn
 import torch
@@ -34,6 +33,9 @@ def train(args):
     edge_hidden_dim = args.edge_hidden_dim
     batch_size = args.batch_size
     test_size = args.test_size
+    num_epochs = args.epochs
+    lr = args.lr
+
     node_feats, edge_indices, edge_feats, labels = get_dataset(node_feats_path=None, 
                                                                edge_indices_path=None, 
                                                                edge_feats_path=None, 
@@ -45,9 +47,9 @@ def train(args):
     model = BaseMPNN(node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim)
 
     # optimizer 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
-    for epoch in range(10):
+    for epoch in range(num_epochs):
         for i in range(0, len(node_feats_train), batch_size):
             outs = []
             for j in range(i, min(i+batch_size, len(node_feats_train))):
@@ -56,7 +58,7 @@ def train(args):
                 edge_feat = edge_feats_train[j]
                 out = model(node_feat, edge_index, edge_feat)
                 outs.append(out)
-            outs = torch.cat(outs).to(DEVICE)
+            outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
             y = torch.tensor(labels_train[i:i+batch_size]).to(DEVICE)
             loss = criterion(outs, y)
             optimizer.zero_grad()
@@ -68,7 +70,7 @@ def train(args):
         print("Epoch: ", epoch)
 
     # test
-    for i in range(0, len(node_feats_test), batch_size):
+    for i in range(0, len([node_feats_test]), batch_size):
         outs = []
         for j in range(i, min(i+batch_size, len(node_feats_test))):
             node_feat = node_feats_test[j]
@@ -76,10 +78,10 @@ def train(args):
             edge_feat = edge_feats_test[j]
             out = model(node_feat, edge_index, edge_feat)
             outs.append(out)
-        outs = torch.cat(outs).to(DEVICE)
+        outs = torch.cat(outs).squeeze(0).to(DEVICE)
         y = torch.tensor(labels_test[i:i+batch_size]).to(DEVICE)
         loss = criterion(outs, y)
-        print("Test loss: ", loss)
+        print("\nTest loss: ", loss)
         print("Predictions: ", outs)
         print("Labels: ", y)
         
@@ -89,10 +91,12 @@ if __name__=='__main__':
     args = ArgumentParser()
     args.add_argument('--node_feat_dim', type=int, default=3)
     args.add_argument('--edge_feat_dim', type=int, default=6)
-    args.add_argument('--node_hidden_dim', type=int, default=4)
-    args.add_argument('--edge_hidden_dim', type=int, default=4)
+    args.add_argument('--node_hidden_dim', type=int, default=16)
+    args.add_argument('--edge_hidden_dim', type=int, default=16)
     args.add_argument('--batch_size', type=int, default=2)
-    args.add_argument('--test_size', type=float, default=0.5)
+    args.add_argument('--test_size', type=float, default=0.34)
+    args.add_argument('--epochs', type=int, default=100)
+    args.add_argument('--lr', type=float, default=0.01)
     args = args.parse_args()
     train(args)
 
