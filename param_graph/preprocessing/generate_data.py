@@ -1,80 +1,109 @@
-# preprocessing
-from param_graph.generate_nns import generate_random_cnn
-import tensorflow as tf
+import pandas as pd
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import torchvision
+import torchvision.transforms as transforms
+from torchvision.datasets import CIFAR10
+from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data import DataLoader
+
+from param_graph.generate_nns import generate_random_cnn
 from param_graph.seq_to_net import seq_to_net
 
-def generate_data(n_architectures=10, n_epochs=2, lr=0.001, momentum=0.9):
-  """
-  Generates random CNN architectures and trains them on CIFAR10 data
 
-  Args:
-  - n_architectures: int, the number of architectures to generate
-  - n_epochs: int, the number of epochs to train each architecture
-  - other hyperpa
-  """
+def generate_data(
+    n_architectures=10,
+    train_size=None,
+    batch_size=4,
+    n_epochs=2,
+    lr=0.001, 
+    momentum=0.9
+):
+    """
+    Generates random CNN architectures and trains them on CIFAR10 data
 
+    Args:
+    - n_architectures: int, the number of architectures to generate
+    - n_epochs: int, the number of epochs to train each architecture
+    - other hyperpa
+    """
 
+    torch.manual_seed(0)
 
-  # load cifar10
-  (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
 
-  # reshape x to be of the form (batch_size, 3, 32, 32)
-  x_train = x_train.transpose(0, 3, 1, 2)
-  x_test = x_test.transpose(0, 3, 1, 2)
+    batch_size = 4
 
-  # sample some data
-  x_train = x_train[:1000]
-  y_train = y_train[:1000]
-  x_test = x_test[:1000]
-  y_test = y_test[:1000]
+    trainset = CIFAR10(root='./data', train=True, download=True, transform=transform)
+    if train_size is None:
+        train_sampler = None
+    else:
+        train_size = 1000
+        train_sampler = SubsetRandomSampler(torch.randperm(len(trainset))[:train_size])
+    
+    trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
 
+    testset = CIFAR10(root='./data', train=False, download=True, transform=transform)
+    if train_size is None:
+        test_sampler = None
+    else:
+        test_size = train_size // 5
+        test_sampler = SubsetRandomSampler(torch.randperm(len(testset))[:test_size])
+    
+    testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
 
-  results = []
+    results = []
 
-  for i in range(n_architectures):
-    cnn = generate_random_cnn(in_dim=32, in_channels=3, out_dim=10)
+    for i in range(n_architectures):
+        cnn = generate_random_cnn()
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
 
-    x_train_tensor = torch.tensor(x_train, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+        for j in range(n_epochs):
 
-    # Train the model
-    for epoch in range(n_epochs):
-      running_loss = 0.0
-      for i in range(len(x_train_tensor)):
-        optimizer.zero_grad()
-        outputs = cnn(x_train_tensor[i].unsqueeze(0))
-        loss = criterion(outputs, y_train_tensor[i])
-        loss.backward()
-        optimizer.step()
+            running_loss = 0.0
+            for k, data in enumerate(trainloader, 0):
+                inputs, labels = data
 
-        running_loss += loss.item()
-        if i % 100 == 99:
-          print(f'Model {i + 1}/{n_architectures}, Epoch {epoch + 1}/){n_epochs}, Batch {i + 1}: Loss {running_loss / 1000}')
-          running_loss = 0.0
+                optimizer.zero_grad()
 
-      # calculate accuracy
-      correct = 0
-      total = 0
-      with torch.no_grad():
-        for i in range(len(x_test)):
-          outputs = cnn(torch.tensor(x_test, dtype=torch.float32).unsqueeze(0))
-          _, predicted = torch.max(outputs.data, 2)
-          total += 1
-          correct += (predicted == y_test[i]).sum().item()
+                outputs = cnn(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
 
-      accuracy = correct / total
+                running_loss += loss.item()
+                if k % 200 == 199:
+                    print(f'\rModel {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss/2000:.3f}', end='')
+                    running_loss = 0.0
 
-    node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
-    results.append([node_feats, edge_indices, edge_feats, accuracy])
+        with torch.no_grad():
+            correct = 0
+            total = 0
+            for data in testloader:
+                images, labels = data
 
-    # Record results in csv
-    import pandas as pd
-    df = pd.DataFrame(results, columns=['node_feats', 'edge_indices', 'edge_feats', 'accuracy'])
-    df.to_csv('data_cnn.csv')
+                outputs = cnn(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+            accuracy = correct / total
+
+        print(f"\nAccuracy: {accuracy}")
+
+        node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
+
+        results.append([node_feats, edge_indices, edge_feats, accuracy])
+
+    # convert results to csv
+    results_df = pd.DataFrame(results, columns=['node_feats', 'edge_indices', 'edge_feats', 'accuracy'])
+    results_df.to_csv('data/results.csv', index=False)
+
