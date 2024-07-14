@@ -174,7 +174,7 @@ class LayerFactory:
         for out_channel in range(module.out_channels):
             node_id = start_node_id + out_channel
             out_channel_node = Node(node_id, NodeFeatures(layer_num=layer_num, 
-                                                                rel_index=out_channel, 
+                                                                rel_index=-1, 
                                                                 node_type=NodeType.CONV))
             conv_layer.add_node(out_channel_node)
             #iterate through previous layer nodes:
