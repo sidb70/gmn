@@ -1,18 +1,17 @@
-import pandas as pd
-
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-import torchvision
-import torchvision.transforms as transforms
+from torchvision import transforms
 from torchvision.datasets import CIFAR10
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
 
-from param_graph.generate_nns import generate_random_cnn
+from param_graph.preprocessing.generate_nns import generate_random_cnn
 from param_graph.seq_to_net import seq_to_net
 
+sys.path.append('..\\..')
 
 def generate_data(
     n_architectures=10,
@@ -28,7 +27,7 @@ def generate_data(
     Args:
     - n_architectures: int, the number of architectures to generate
     - n_epochs: int, the number of epochs to train each architecture
-    - other hyperpa
+    - other hyperparameters: see generate_random_cnn
     """
 
     torch.manual_seed(0)
@@ -37,8 +36,6 @@ def generate_data(
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-
-    batch_size = 4
 
     trainset = CIFAR10(root='./data', train=True, download=True, transform=transform)
     if train_size is None:
@@ -52,7 +49,7 @@ def generate_data(
     if train_size is None:
         test_sampler = None
     else:
-        test_size = train_size // 5
+        test_size = train_size // 4
         test_sampler = SubsetRandomSampler(torch.randperm(len(testset))[:test_size])
     
     testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
@@ -80,7 +77,7 @@ def generate_data(
                 optimizer.step()
 
                 running_loss += loss.item()
-                if k % 200 == 199:
+                if k % 100 == 99:
                     print(f'\rModel {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss/2000:.3f}', end='')
                     running_loss = 0.0
 
