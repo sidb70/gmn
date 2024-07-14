@@ -43,9 +43,9 @@ def train_epoch(model, node_feats_train, edge_indices_train, edge_feats_train, l
     for i in range(0, len(node_feats_train), batch_size):
         outs = []
         for j in range(i, min(i+batch_size, len(node_feats_train))):
-            node_feat = node_feats_train[j]
-            edge_index = edge_indices_train[j]
-            edge_feat = edge_feats_train[j]
+            node_feat = node_feats_train[j].to(DEVICE)
+            edge_index = edge_indices_train[j].clone().to(DEVICE)
+            edge_feat = edge_feats_train[j].clone().to(DEVICE)
             out = model.forward(node_feat, edge_index, edge_feat)
             outs.append(out)
         outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
@@ -61,9 +61,9 @@ def eval_step(model, node_feats, edge_indices, edge_feats, labels, criterion, ba
     for i in range(0, len([node_feats]), batch_size):
         outs = []
         for j in range(i, min(i+batch_size, len(node_feats))):
-            node_feat = node_feats[j]
-            edge_index = edge_indices[j]
-            edge_feat = edge_feats[j]
+            node_feat = node_feats[j].clone().to(DEVICE)
+            edge_index = edge_indices[j].clone().to(DEVICE)
+            edge_feat = edge_feats[j].clone().to(DEVICE)
             out = model(node_feat, edge_index, edge_feat)
             outs.append(out)
     outs = torch.cat(outs).squeeze(0).to(DEVICE)
@@ -90,7 +90,7 @@ def train(args):
                                                                labels_path=None)
     
     train_set, valid_set, test_set = split(valid_size, test_size, node_feats, edge_indices, edge_feats, labels)
-    model = BaseMPNN(node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim, device=DEVICE)
+    model = BaseMPNN(node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim).to(DEVICE)
 
     # optimizer 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)

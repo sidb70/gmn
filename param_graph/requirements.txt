@@ -1,6 +1,0 @@
-torch
-networkx
-igraph
-chart-studio
-plotly
-pandas

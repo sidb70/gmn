@@ -98,7 +98,7 @@ class NodeModel(nn.Module):
 #         return self.forward(*args, **kwargs)
 
 class BaseMPNN(nn.Module):
-    def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim, device='cuda'):
+    def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim):
         super().__init__()
         edge_in_dim = 2*node_feat_dim + edge_feat_dim
         node_in_dim = node_feat_dim + edge_hidden_dim
@@ -111,8 +111,6 @@ class BaseMPNN(nn.Module):
         self.node_norm = nn.BatchNorm1d(node_hidden_dim)
         self.edge_norm = nn.BatchNorm1d(edge_hidden_dim)
         self.regression = nn.Linear(node_hidden_dim + edge_hidden_dim, 1)
-        self.device=device
-        self.to(self.device)
 
     def forward(self, x, edge_index, edge_attr, u=None, batch=None):
         # print("Base MPNN forward")
@@ -121,9 +119,11 @@ class BaseMPNN(nn.Module):
         # print("edge attr shape", edge_attr.shape)
 
         ## can have multi 
-
         for i,layer in enumerate(self.meta_layers):
             # print("calling layer: ", i)
+            print("x device",  x.device)
+            print("edge index device", edge_index.device)
+            print("edge attr device", edge_attr.device)
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
                 # print('calling norm layers')
