@@ -88,7 +88,7 @@ def get_module_type(module: nn.Module) -> LayerType:
 # ----------------- Features -----------------
 class NodeFeatures(BaseModel):
     layer_num: int # layer number in the network
-    rel_index: int # index of the node within the layer
+    rel_index: int # index of the node within the layer. -1 for nodes which are equivalent under permutation 
     node_type: NodeType 
     def serialize(self) -> dict:
         '''
