@@ -44,7 +44,6 @@ def generate_data(
     if train_size is None:
         train_sampler = None
     else:
-        train_size = 1000
         train_sampler = SubsetRandomSampler(torch.randperm(len(trainset))[:train_size])
     
     trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
@@ -58,7 +57,8 @@ def generate_data(
     
     testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
 
-    results = []
+    features = []
+    accuracies = []
 
     for i in range(n_architectures):
         cnn = generate_random_cnn()
@@ -101,9 +101,8 @@ def generate_data(
 
         node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
 
-        results.append([node_feats, edge_indices, edge_feats, accuracy])
+        features.append((node_feats, edge_feats))
+        accuracies.append(accuracy)
 
-    # convert results to csv
-    results_df = pd.DataFrame(results, columns=['node_feats', 'edge_indices', 'edge_feats', 'accuracy'])
-    results_df.to_csv('data/results.csv', index=False)
-
+    torch.save(features, 'cnn_features.pt')
+    torch.save(accuracies, 'cnn_accuracies.pt')
