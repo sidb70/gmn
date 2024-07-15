@@ -7,6 +7,7 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
+
 import torch
 from param_graph.preprocessing.generate_nns import generate_random_cnn
 # from param_graph.seq_to_net import seq_to_net
@@ -20,7 +21,8 @@ def generate_data(
     n_epochs: int,
     batch_size=32,
     lr=0.001, 
-    momentum=0.9
+    momentum=0.9,
+    directory='data/cnn_data'
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data
@@ -29,6 +31,10 @@ def generate_data(
     - n_architectures: int, the number of architectures to generate
     - n_epochs: int, the number of epochs to train each architecture
     - other hyperparameters: see generate_random_cnn
+
+    Saves these files to the specified directory:
+    - features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
+    - accuracies.pt: list of accuracies for each model. 
     """
 
     transform = transforms.Compose([
@@ -40,10 +46,11 @@ def generate_data(
 
     train_size = int(train_proportion * len(trainset))
     train_sampler = SubsetRandomSampler(torch.randperm(len(trainset))[:train_size])
+
     
     trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
 
-    testset = CIFAR10(root='./data', train=False, download=True, transform=transform)
+    testset = CIFAR10(root='./data/cifar10', train=False, download=True, transform=transform)
     if train_size is None:
         test_sampler = None
     else:
@@ -99,7 +106,6 @@ def generate_data(
 
         features.append((node_feats, edge_indices, edge_feats))
         accuracies.append(accuracy)
-
     if not os.path.exists('gmn_data'):
         os.makedirs('gmn_data')
     if os.path.exists('gmn_data/cnn_features.pt'):
@@ -108,3 +114,4 @@ def generate_data(
         accuracies = torch.load('gmn_data/cnn_accuracies.pt') + accuracies
     torch.save(features, 'gmn_data/ccnn_features.pt')
     torch.save(accuracies, 'gmn_data/ccnn_accuracies.pt')
+

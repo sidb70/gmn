@@ -47,6 +47,7 @@ class LayerFactory:
             node = Node(i, node_features)
             input_layer.add_node(node)
         return input_layer
+
     def create_linear_layer(self, layer: nn.Linear, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a linear layer
@@ -119,7 +120,7 @@ class LayerFactory:
         - NetworkLayer: Normalization layer
         '''
         prev_layer = kwargs['prev_layer']
-        layer_type = kwargs['layer_type']
+        layer_type = kwargs.get('layer_type', LayerType.NORM)
         norm_layer = NetworkLayer(layer_num=layer_num, layer_type=layer_type)
 
         gamma, beta = module.weight, module.bias

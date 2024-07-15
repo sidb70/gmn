@@ -41,9 +41,10 @@ def generate_random_cnn(
   while conv_layer_number < n_conv_layers:
 
     if conv_layer_number != 0:
-      # for all layers except the first, the in dim is the out dim of the previous layer
+      # for all layers except the first, the in dim is the out dim of the previous layer,
+      # and the in channels is the out channels of the previous layer
       in_dim = layers[-1][1][1]
-      in_channels = out_channels
+      in_channels = layers[-1][1][0]
 
     # For each conv layer, randomly determine the number of hidden channels
     out_channels = 2**torch.randint(*log_hidden_channels_range, (1,)).item()
