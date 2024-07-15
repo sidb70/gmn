@@ -1,6 +1,6 @@
 from .factory import LayerFactory
 import torch.nn as nn
-from .graph_types import ParameterGraph, NetworkLayer
+from .graph_types import ParameterGraph, LayerType
 from pprint import pprint
 from .visualize import draw_graph
 from .graph_types import (
@@ -19,28 +19,26 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     - MultiDiGraph: Global graph
     '''
     layer_factory = LayerFactory()
-    layers: List[NetworkLayer] = []
+    global_graph = ParameterGraph()
     # create first layer
-    prev_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
-    layers.append(prev_layer)
-    layer_num=1
+    # prev_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
+    # starting_node_id = max(prev_layer.get_node_ids()) + 1
+    layer_num = 0
+    starting_node_id=0
+    prev_layer = None
     for module in seq:
         if type(module) in [nn.Flatten, nn.AdaptiveAvgPool1d, nn.AdaptiveAvgPool2d, nn.Identity]:
             continue
-        node_id = max(layers[-1].get_node_ids()) + 1
-        layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=node_id, prev_layer=prev_layer)
-        layers.append(layer)
-        if layer.layer_type in PARAMETRIC_LAYERS:
-            prev_layer = layer
-        # print("added layer: ", layer_num, " with ",len(layer.get_nodes()), "nodes and", len(layer.get_edges()), " edges")
-        layer_num += 1
-    global_graph = ParameterGraph()
-    for layer in layers:
+        layer = layer_factory.create_layer(module, layer_num=layer_num, start_node_id=starting_node_id, prev_layer=prev_layer)
         for node in layer.get_nodes():
             global_graph.add_node(node.node_id, node_obj=node)
             global_graph.nodes[node.node_id]['subset'] = layer.layer_num
         for edge in layer.get_edges():
             global_graph.add_edge(edge.node1.node_id, edge.node2.node_id, edge_obj=edge)
+        if layer.layer_type in PARAMETRIC_LAYERS + [LayerType.INPUT]:
+            prev_layer = layer
+        layer_num += 1
+        starting_node_id = max(layer.get_node_ids()) + 1
     return global_graph
 
 def main():
