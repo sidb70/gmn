@@ -104,7 +104,7 @@ def train_random_cnns(
 
         node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
 
-        features.append((node_feats, edge_feats))
+        features.append((node_feats, edge_indices, edge_feats))
         accuracies.append(accuracy)
 
     torch.save(features, os.path.join(directory, 'features.pt'))
