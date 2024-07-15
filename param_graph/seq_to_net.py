@@ -20,11 +20,13 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     '''
     layer_factory = LayerFactory()
     layers: List[NetworkLayer] = []
-    # create first layer
+
+    # create input layer
     prev_layer = layer_factory.create_layer(module=seq[0], layer_num=0, start_node_id=0)
+    # prev_layer is the last parametric layer
     layers.append(prev_layer)
-    layer_num=1
-    for module in seq:
+
+    for layer_num, module in enumerate(seq, 1):
         if type(module) in [nn.Flatten, nn.AdaptiveAvgPool1d, nn.AdaptiveAvgPool2d, nn.Identity]:
             continue
         node_id = max(layers[-1].get_node_ids()) + 1
@@ -32,8 +34,7 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
         layers.append(layer)
         if layer.layer_type in PARAMETRIC_LAYERS:
             prev_layer = layer
-        # print("added layer: ", layer_num, " with ",len(layer.get_nodes()), "nodes and", len(layer.get_edges()), " edges")
-        layer_num += 1
+
     global_graph = ParameterGraph()
     for layer in layers:
         for node in layer.get_nodes():

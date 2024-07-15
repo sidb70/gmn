@@ -1,3 +1,4 @@
+import os
 import sys
 import torch
 import torch.nn as nn
@@ -8,18 +9,19 @@ from torchvision.datasets import CIFAR10
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..\\..'))
 from param_graph.preprocessing.generate_nns import generate_random_cnn
 from param_graph.seq_to_net import seq_to_net
 
-sys.path.append('..\\..')
 
-def generate_data(
+def train_random_cnns(
     n_architectures=10,
     train_size=None,
     batch_size=4,
     n_epochs=2,
     lr=0.001, 
-    momentum=0.9
+    momentum=0.9,
+    directory='data/cnn_data'
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data
@@ -28,6 +30,10 @@ def generate_data(
     - n_architectures: int, the number of architectures to generate
     - n_epochs: int, the number of epochs to train each architecture
     - other hyperparameters: see generate_random_cnn
+
+    Saves these files to the specified directory:
+    - features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
+    - accuracies.pt: list of accuracies for each model. 
     """
 
     torch.manual_seed(0)
@@ -37,7 +43,7 @@ def generate_data(
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    trainset = CIFAR10(root='./data', train=True, download=True, transform=transform)
+    trainset = CIFAR10(root='./data/cifar10', train=True, download=True, transform=transform)
     if train_size is None:
         train_sampler = None
     else:
@@ -45,7 +51,7 @@ def generate_data(
     
     trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
 
-    testset = CIFAR10(root='./data', train=False, download=True, transform=transform)
+    testset = CIFAR10(root='./data/cifar10', train=False, download=True, transform=transform)
     if train_size is None:
         test_sampler = None
     else:
@@ -101,5 +107,5 @@ def generate_data(
         features.append((node_feats, edge_feats))
         accuracies.append(accuracy)
 
-    torch.save(features, 'cnn_features.pt')
-    torch.save(accuracies, 'cnn_accuracies.pt')
+    torch.save(features, os.path.join(directory, 'features.pt'))
+    torch.save(accuracies, os.path.join(directory, 'accuracies.pt'))

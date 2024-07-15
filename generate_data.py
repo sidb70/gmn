@@ -1,7 +1,7 @@
-from param_graph.preprocessing.generate_data import generate_data
+from param_graph.preprocessing.generate_data import train_random_cnns
 
 if __name__ == '__main__':
-  generate_data(
-    n_architectures=2,
-    train_size=100,
+  train_random_cnns(
+    n_architectures=1,
+    train_size=4,
   )
