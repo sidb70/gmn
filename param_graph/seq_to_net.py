@@ -1,14 +1,12 @@
 from .factory import LayerFactory
 import torch.nn as nn
 from .graph_types import ParameterGraph, LayerType
-from pprint import pprint
-from .visualize import draw_graph
 from .graph_types import (
     PARAMETRIC_LAYERS,
 )
-from typing import List
 
-def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
+
+def seq_to_nx(seq: nn.Sequential) -> ParameterGraph:
     '''
     Convert a PyTorch sequential model to a list of NetworkLayer objects
 
@@ -42,11 +40,12 @@ def seq_to_net(seq: nn.Sequential) -> ParameterGraph:
     return global_graph
 
 def main():
+    from pprint import pprint
     model = nn.Sequential(
         nn.Linear(4,10),
         nn.ReLU(),
     )
-    global_graph = seq_to_net(model)
+    global_graph = seq_to_nx(model)
     # pprint("Nodes:")
     # pprint(sorted([node[1]['node_obj'] for node in global_graph.nodes(data=True)], key=lambda x: x.node_id))
     # print("Total edges: ", global_graph.number_of_edges())

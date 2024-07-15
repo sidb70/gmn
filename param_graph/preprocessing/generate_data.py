@@ -1,4 +1,4 @@
-import sys
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,17 +7,18 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
-
+import torch
 from param_graph.preprocessing.generate_nns import generate_random_cnn
-from param_graph.seq_to_net import seq_to_net
+# from param_graph.seq_to_net import seq_to_net
+from param_graph.gmn_lim.model_arch_graph import sequential_to_feats
+# sys.path.append('..\\..')
 
-sys.path.append('..\\..')
-
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def generate_data(
-    n_architectures=10,
-    train_size=None,
-    batch_size=4,
-    n_epochs=2,
+    n_architectures: int,
+    train_proportion: int,
+    n_epochs: int,
+    batch_size=32,
     lr=0.001, 
     momentum=0.9
 ):
@@ -30,18 +31,15 @@ def generate_data(
     - other hyperparameters: see generate_random_cnn
     """
 
-    torch.manual_seed(0)
-
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
     trainset = CIFAR10(root='./data', train=True, download=True, transform=transform)
-    if train_size is None:
-        train_sampler = None
-    else:
-        train_sampler = SubsetRandomSampler(torch.randperm(len(trainset))[:train_size])
+
+    train_size = int(train_proportion * len(trainset))
+    train_sampler = SubsetRandomSampler(torch.randperm(len(trainset))[:train_size])
     
     trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
 
@@ -56,21 +54,19 @@ def generate_data(
 
     features = []
     accuracies = []
-
+    print("Num train samples", len(trainloader) * batch_size)
     for i in range(n_architectures):
-        cnn = generate_random_cnn()
-
+        cnn = generate_random_cnn().to(DEVICE)
+        print("Created CNN:", cnn)
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
 
         for j in range(n_epochs):
-
             running_loss = 0.0
             for k, data in enumerate(trainloader, 0):
                 inputs, labels = data
-
+                inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
                 optimizer.zero_grad()
-
                 outputs = cnn(inputs)
                 loss = criterion(outputs, labels)
                 loss.backward()
@@ -86,6 +82,7 @@ def generate_data(
             total = 0
             for data in testloader:
                 images, labels = data
+                images, labels = images.to(DEVICE), labels.to(DEVICE)
 
                 outputs = cnn(images)
                 _, predicted = torch.max(outputs.data, 1)
@@ -96,10 +93,18 @@ def generate_data(
 
         print(f"\nAccuracy: {accuracy}")
 
-        node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
+        print("Creating parameter graph with ", sum(p.numel() for p in cnn.parameters()), " parameters")
+        # node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
+        node_feats, edge_indices, edge_feats = sequential_to_feats(cnn)
 
         features.append((node_feats, edge_indices, edge_feats))
         accuracies.append(accuracy)
 
-    torch.save(features, 'cnn_features.pt')
-    torch.save(accuracies, 'cnn_accuracies.pt')
+    if not os.path.exists('gmn_data'):
+        os.makedirs('gmn_data')
+    if os.path.exists('gmn_data/cnn_features.pt'):
+        # load
+        features = torch.load('gmn_data/cnn_features.pt') + features
+        accuracies = torch.load('gmn_data/cnn_accuracies.pt') + accuracies
+    torch.save(features, 'gmn_data/ccnn_features.pt')
+    torch.save(accuracies, 'gmn_data/ccnn_accuracies.pt')

@@ -3,8 +3,8 @@ import os
 import sys
 
 # Assuming this file is in param_graph/preprocessing/tests.py
-sys.path.append(os.path.join(os.path.dirname(__file__), '..\\..'))
-from param_graph.preprocessing.generate_nns import generate_random_cnn, generate_random_mlp
+# sys.path.append(os.path.join(os.path.dirname(__file__), '..\\..'))
+from generate_nns import generate_random_cnn, generate_random_mlp
 import torch
 
 class TestPreprocessing(unittest.TestCase):
