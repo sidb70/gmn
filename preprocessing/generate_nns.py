@@ -1,15 +1,16 @@
+from typing import Tuple
 import torch
 import torch.nn as nn
 
 def generate_random_cnn(
-    in_dim=32, 
-    in_channels=3, 
-    n_classes=10, 
-    n_conv_layers_range=(3,6), 
-    n_fc_layers_range=(2,4), 
-    log_hidden_channels_range=(4,8), 
-    log_hidden_fc_units_range=(4,8)
-):
+    in_dim: int = 32,
+    in_channels: int = 3,
+    n_classes: int = 10,
+    n_conv_layers_range: Tuple[int, int] = (2, 4),
+    n_fc_layers_range: Tuple[int, int] = (2, 4),
+    log_hidden_channels_range: Tuple[int, int] = (4, 8),
+    log_hidden_fc_units_range: Tuple[int, int] = (4, 8)
+) -> nn.Sequential:
   """
   Generates a CNN classifier with varying convolutional and linear layers, as 
   well as varying hidden units in each layer. Assumes input and kernels are 2d and square.
@@ -23,7 +24,7 @@ def generate_random_cnn(
       int, the number of classes
   - n_conv_layers_range and n_fc_layers_range:
       tuple, number of conv layers and fc layers are uniformly distributed with these 
-      ranges (inclusive)
+      ranges
   - log_hidden_channels_range and log_hidden_fc_units_range:
       tuple, the number of hidden channels after each conv layer or fc layer 
       is 2**x, where x is uniformly distributed in this range

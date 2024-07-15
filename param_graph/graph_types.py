@@ -204,6 +204,13 @@ class ParameterGraph(nx.MultiDiGraph):
             tensors.append(batch_tensor)
         return torch.cat(tensors)
     def _get_edge_features(self, batch_size=128) -> torch.Tensor:
+        """
+        Get the edge features
+
+        Returns:
+        - torch.Tensor: (6, num_edges) tensor of edge features
+        """
+
         feats = [list(edge_obj.features) for source, target, edge_obj in self.edges(data='edge_obj')]
         feats = torch.tensor(feats)
         return feats

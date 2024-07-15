@@ -6,13 +6,7 @@ from param_graph.seq_to_net import seq_to_net
 def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
     # load feature matrices and labels
     feats, labels = torch.load(feats_path), torch.load(labels_path)
-    node_feats = []
-    edge_indices = []
-    edge_feats = []
-    for (nf, ei, ef) in feats:
-        node_feats.append(nf)
-        edge_indices.append(ei)
-        edge_feats.append(ef)
+    node_feats, edge_indices, edge_feats = feats
     return node_feats, edge_indices, edge_feats, labels
 
     ## mock data
@@ -62,6 +56,7 @@ def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
     edge_feats = [edge_feats1, edge_feats2, edge_feats3]
     labels = [.89, .93, .95]
     return node_feats, edge_indices, edge_feats, labels
+
 if __name__=='__main__':
     args = ArgumentParser()
     args.add_argument('--feats_path', type=str, default='gmn_data/cnn_features.pt')

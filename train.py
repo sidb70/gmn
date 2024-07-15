@@ -1,5 +1,5 @@
 from models.models import BaseMPNN
-from data_loader import get_dataset
+from preprocessing.data_loader import get_dataset
 import torch.nn as nn
 import torch
 import random
