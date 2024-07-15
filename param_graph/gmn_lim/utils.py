@@ -18,30 +18,35 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import math
 import torch
 import torch.nn as nn
-from .constants import NODE_TYPES, EDGE_TYPES
 
-def make_node_feat(neuron_num, l, node_type, end_neuron=False):
-    ''' end_neuron means whether it is an input or output neuron
+from constants import NODE_TYPES, EDGE_TYPES
+
+def make_node_feat(num_neurons, layer_num, node_type, is_hidden_neuron=False):
+    ''' 
+    makes node features for a layer
+    num_neurons: number of neurons in the layer
+    layer_num: the layer number
+    node_type: the type of neuron
+    is_hidden_neuron:  means whether it is an input or output neuron
     x has 3 dimensions:
     x[:, 0] is layer number
     x[:, 1] is neuron order (if the neuron is an input or output neuron of the whole network)
     x[:, 2] is the node type
     '''
-    x = torch.zeros(neuron_num, 3, dtype=torch.long)
-    x[:, 0] = l
-    if not end_neuron:
+    node_features = torch.zeros(num_neurons, 3, dtype=torch.long)
+    node_features[:, 0] = layer_num
+    if is_hidden_neuron:
         # if it is a hidden neuron, don't give an order
-        x[:, 1] = -1
+        node_features[:, 1] = -1
     else:
-        x[:, 1] = torch.arange(neuron_num)
-    x[:, 2] = node_type
-    return x
+        node_features[:, 1] = torch.arange(num_neurons)
+    node_features[:, 2] = node_type
+    return node_features
 
-def make_edge_attr(weights, l, edge_type, conv_size=None, triplanar_size=None):
+def make_edge_attr(weights, layer_num, edge_type, conv_size=None, triplanar_size=None):
     '''
     weights is num_edges x 1
     triplanar size is of form (dim, N), where N is resolution [only for triplanar grid module]
@@ -50,11 +55,11 @@ def make_edge_attr(weights, l, edge_type, conv_size=None, triplanar_size=None):
     edge_attr[:, 1] is layer number
     edge_attr[:, 2] is edge type
     edge_attr[:, (3,4,5)] are position in convolution kernel (if conv_size is not None)
-    edge_attr[:, (3,4)] are position in TODO
+    edge_attr[:, (3,4)] are position in triplanar grid (if triplanar_size is not None)
     '''
     edge_attr = torch.zeros(weights.shape[0], 6)
     edge_attr[:, 0] = weights[:, 0]
-    edge_attr[:, 1] = l
+    edge_attr[:, 1] = layer_num
     edge_attr[:, 2] = edge_type
     edge_attr[:, 3:] = -1
     
@@ -115,15 +120,37 @@ def make_edge_attr(weights, l, edge_type, conv_size=None, triplanar_size=None):
         
     return edge_attr
 
-def make_residual_feat(num_neurons, l):
+def make_residual_feat(num_neurons, layer_num):
     edge_attr = torch.zeros(num_neurons, 6)
     edge_attr[:, 0] = 1 # all weights set to 1
-    edge_attr[:, 1] = l
+    edge_attr[:, 1] = layer_num
     edge_attr[:, 2] = EDGE_TYPES['residual']
     edge_attr[:, 3:] = -1
     return edge_attr
 
-def conv_to_graph(weight, bias, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=True):
+def conv_to_graph(weight, bias, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=True):
+    '''
+    converts a convolution layer to a parameter graph
+    
+    Args:
+        weight (torch.Tensor): the weight tensor of the convolution layer
+        bias (torch.Tensor): the bias tensor of the convolution layer
+        layer_num (int): the layer number
+        in_neuron_idx (torch.Tensor): the indices of the input neurons
+        is_output (bool): whether the output neurons are the last layer
+        curr_idx (int): the current index of the neurons
+        self_loops (bool): whether to add self loops to the graph
+        
+    Returns:
+        dict: a dictionary containing the graph parameters
+            - 'input_neurons': the number of input neurons
+            - 'output_neurons': the number of output neurons
+            - 'in_neuron_idx': the indices of the input neurons
+            - 'out_neuron_idx': the indices of the output neurons
+            - 'node_feats': the node features
+            - 'edge_index': the edge indices
+            - 'edge_attr': the edge attributes
+    '''
     # should work for Conv1d, Conv2d, Conv3d
     edge_attr = []
     edge_index = []
@@ -131,7 +158,7 @@ def conv_to_graph(weight, bias, l, in_neuron_idx, out_neuron=False, curr_idx=0, 
     input_neurons = weight.shape[1]
     assert input_neurons == in_neuron_idx.shape[0]
     
-    feat = make_node_feat(input_neurons, l, NODE_TYPES['channel'], end_neuron=(l==0))
+    feat = make_node_feat(input_neurons, layer_num, NODE_TYPES['channel'], is_hidden_neuron=(layer_num!=0))
     input_x = feat
     
     output_neurons = weight.shape[0]
@@ -139,13 +166,13 @@ def conv_to_graph(weight, bias, l, in_neuron_idx, out_neuron=False, curr_idx=0, 
     out_neuron_idx = torch.arange(output_neurons) + in_neuron_idx.max() + 1
     if out_neuron_idx.min() < curr_idx:
         out_neuron_idx = out_neuron_idx + curr_idx - out_neuron_idx.min()
-    feat = make_node_feat(output_neurons, l+1, NODE_TYPES['channel'], out_neuron)
-    other_x = feat
+    feat = make_node_feat(output_neurons, layer_num+1, NODE_TYPES['channel'], is_output)
+    other_nodes_feats = feat
     
 
     filter_size = math.prod(weight.shape[2:])
     edge_attr.append(make_edge_attr(
-                    weight.reshape(-1, 1), l, EDGE_TYPES['conv_weight'],
+                    weight.reshape(-1, 1), layer_num, EDGE_TYPES['conv_weight'],
                     conv_size=weight.shape))
     #weight_edges = torch.cartesian_prod(in_neuron_idx, out_neuron_idx).T.repeat_interleave(filter_size, dim=1)
     # TODO: double check this
@@ -160,145 +187,169 @@ def conv_to_graph(weight, bias, l, in_neuron_idx, out_neuron=False, curr_idx=0, 
     if bias is not None: # checks if layer has bias
         if self_loops:
             edge_attr.append(make_edge_attr(
-                        bias.reshape(-1, 1), l, EDGE_TYPES['conv_bias']))
+                        bias.reshape(-1, 1), layer_num, EDGE_TYPES['conv_bias']))
             weight_edges = torch.cat((out_neuron_idx[None, :],
                                       out_neuron_idx[None, :]), dim=0) # self loops
             edge_index.append(weight_edges)
         else:
             edge_attr.append(make_edge_attr(
-                        bias.reshape(-1, 1), l, EDGE_TYPES['conv_bias']))
-            bias_node = make_node_feat(1, l+1, NODE_TYPES['channel_bias'], False)
+                        bias.reshape(-1, 1), layer_num, EDGE_TYPES['conv_bias']))
+            bias_node = make_node_feat(1, layer_num+1, NODE_TYPES['channel_bias'], False)
             bias_num = out_neuron_idx.max() + 1
             weight_edges = torch.cat([
                             torch.tensor([bias_num]).repeat(output_neurons)[None, :],
                             out_neuron_idx[None, :]
                             ], 0)
-            other_x = torch.cat([other_x, bias_node], 0)
+            other_nodes_feats = torch.cat([other_nodes_feats, bias_node], 0)
             edge_index.append(weight_edges)
         
     # does not work for when residual layer is first layer
-    added_x = other_x if l > 0 else torch.cat([input_x, other_x], 0)
+    all_node_feats = other_nodes_feats if layer_num > 0 else torch.cat([input_x, other_nodes_feats], 0)
     
     edge_attr = torch.cat(edge_attr, dim=0)
     edge_index = torch.cat(edge_index, dim=1)
+    assert edge_attr.shape[0] == edge_index.shape[1]
     
     ret = { 'input_neurons': input_neurons,
             'output_neurons': output_neurons,
             'in_neuron_idx': in_neuron_idx,
             'out_neuron_idx': out_neuron_idx,
-            'added_x': added_x,
+            'node_feats': all_node_feats,
             'edge_index': edge_index,
             'edge_attr': edge_attr}
     return ret
 
-def linear_to_graph(weight, bias, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=True, out_neuron_idx=None, label=''):
+def linear_to_graph(weight, bias, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=True, out_neuron_idx=None, label=''):
     ''' if out_neuron_idx is not None, then do not make new out neurons
+
+    Converts a linear layer to its parameter graph representation
+
+    Args:
+        weight (torch.Tensor): the weight tensor of the linear layer
+        bias (torch.Tensor): the bias tensor of the linear layer
+        layer_num (int): the layer number
+        in_neuron_idx (torch.Tensor): the indices of the input neurons
+        is_out_neuron (bool): whether the output neurons are the last layer
+        curr_idx (int): the current index of the neurons
+
+    Returns:
+        dict: a dictionary containing the graph parameters
+            - 'input_neurons': the number of input neurons
+            - 'output_neurons': the number of output neurons
+            - 'in_neuron_idx': the indices of the input neurons
+            - 'out_neuron_idx': the indices of the output neurons
+            - 'node_feats': the node features with shape (num_neurons, 3)
+            - 'edge_index': the edge indices with shape (2, num_edges)
+            - 'edge_attr': the edge attributes with shape (num_edges, 6)
+
     '''
     edge_attr = []
     edge_index = []
     
     input_neurons = weight.shape[1]
-    # assert input_neurons == in_neuron_idx.shape[0]
+    assert input_neurons == in_neuron_idx.shape[0]
     
-    feat = make_node_feat(input_neurons, l, NODE_TYPES[label + 'neuron'], end_neuron=(l==0 or out_neuron))
-    input_x = feat
-    if l == 0:
-        curr_idx += input_x.shape[0]
+    input_nodes_feats = make_node_feat(input_neurons, layer_num, NODE_TYPES[label + 'neuron'], is_hidden_neuron=(layer_num!=0))
+    other_nodes_feats = None # for output and/or bias neurons
+    if layer_num == 0:
+        curr_idx += input_nodes_feats.shape[0]
     
     output_neurons = weight.shape[0]
     if out_neuron_idx is None:
         # need to add out neurons
-        out_neuron_idx = torch.arange(output_neurons) + in_neuron_idx.max() + 1
-        if out_neuron_idx.min() < curr_idx:
-            # if adding out_neurons, need to make sure they start at curr_idx
-            out_neuron_idx = out_neuron_idx - out_neuron_idx.min() + curr_idx
-
-        feat = make_node_feat(output_neurons, l+1, NODE_TYPES[label + 'neuron'], out_neuron)
-        other_x = feat
-        curr_idx += other_x.shape[0]
+        # out_neuron_idx = torch.arange(output_neurons) + in_neuron_idx.max() + 1
+        # if out_neuron_idx.min() < curr_idx:
+        #     # if adding out_neurons, need to make sure they start at curr_idx
+        #     out_neuron_idx = out_neuron_idx - out_neuron_idx.min() + curr_idx
+        out_neuron_idx = torch.arange(output_neurons) + curr_idx
+        other_nodes_feats = make_node_feat(output_neurons, layer_num+1, NODE_TYPES[label + 'neuron'], is_hidden_neuron= (not is_output))
+        curr_idx += other_nodes_feats.shape[0]
     else:
         # do not add new neurons
-        other_x = None
+        pass
     
 
     edge_attr.append(make_edge_attr(
-                    weight.reshape(-1, 1), l, EDGE_TYPES['lin_weight']))
-    #weight_edges = torch.cartesian_prod(in_neuron_idx, out_neuron_idx).T
+                    weight.reshape(-1, 1), layer_num, EDGE_TYPES['lin_weight']))
+    
     weight_edges = torch.cartesian_prod(out_neuron_idx, in_neuron_idx).T
     temp = torch.zeros_like(weight_edges)
     temp[1], temp[0] = weight_edges[0], weight_edges[1]
-    weight_edges = temp
+    weight_edges = temp # 2 x num_edges. each col represents an edge, with row1 =in_neuron, row2=out_neuron
+    assert weight_edges.shape[1] == edge_attr[0].shape[0]
     edge_index.append(weight_edges)
 
     if bias is not None: # checks if layer has bias
         if self_loops:
             edge_attr.append(make_edge_attr(
-                        bias.reshape(-1, 1), l, EDGE_TYPES['lin_bias']))
+                        bias.reshape(-1, 1), layer_num, EDGE_TYPES['lin_bias']))
             weight_edges = torch.cat((out_neuron_idx[None, :],
                                       out_neuron_idx[None, :]), dim=0) # self loops
             edge_index.append(weight_edges)
         else:
             edge_attr.append(make_edge_attr(
-                        bias.reshape(-1, 1), l, EDGE_TYPES['lin_bias']))
-            bias_node = make_node_feat(1, l+1, NODE_TYPES['bias'], False)
-            bias_num = curr_idx
-            curr_idx += 1
+                        bias.reshape(-1, 1), layer_num, EDGE_TYPES['lin_bias']))
+            
+            bias_node = make_node_feat(num_neurons=1, layer_num=layer_num, node_type=NODE_TYPES['bias'], is_hidden_neuron=False)
+            bias_node_idx = curr_idx
+            curr_idx +=1
             weight_edges = torch.cat([
-                            torch.tensor([bias_num]).repeat(output_neurons)[None, :],
+                            torch.tensor([bias_node_idx]).repeat(output_neurons)[None, :],
                             out_neuron_idx[None, :]
                             ], 0)
-            if other_x is not None:
-                other_x = torch.cat([other_x, bias_node], 0)
-            else:
-                other_x = bias_node
-            edge_index.append(weight_edges)
             
-    if l > 0:
-        added_x = other_x
+            edge_index.append(weight_edges)
+            if other_nodes_feats is not None:
+                other_nodes_feats = torch.cat([other_nodes_feats, bias_node], 0)
+            else:
+                other_nodes_feats = bias_node
+            
+    if layer_num > 0:
+        all_node_feats = other_nodes_feats
     else:
-        if other_x is not None:
-            added_x = torch.cat([input_x, other_x], 0)
+        if other_nodes_feats is not None:
+            all_node_feats = torch.cat([input_nodes_feats, other_nodes_feats], 0)
         else:
-            added_x = input_x
+            all_node_feats = input_nodes_feats
         
-    edge_attr = torch.cat(edge_attr, dim=0)
-    edge_index = torch.cat(edge_index, dim=1)
+    edge_attr = torch.cat(edge_attr, dim=0) # convert list of edge attributes to single tensor
+    edge_index = torch.cat(edge_index, dim=1) # convert list of edge indices to single tensor
     
     ret = { 'input_neurons': input_neurons,
             'output_neurons': output_neurons,
             'in_neuron_idx': in_neuron_idx,
             'out_neuron_idx': out_neuron_idx,
-            'added_x': added_x,
+            'node_feats': all_node_feats,
             'edge_index': edge_index,
             'edge_attr': edge_attr}
     return ret
 
-def norm_to_graph(gamma, beta, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=True, norm_type='bn'):
+def norm_to_graph(gamma, beta, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=True, norm_type='bn'):
     # gamma, beta are both length d vectors
     edge_attr = []
     edge_index = []
     input_neurons = gamma.shape[0]
     assert input_neurons == in_neuron_idx.shape[0]
     
-    feat = make_node_feat(input_neurons, l, NODE_TYPES['neuron'], end_neuron=(l==0))
+    feat = make_node_feat(input_neurons, layer_num, NODE_TYPES['neuron'], is_hidden_neuron=(layer_num!=0))
     input_x = feat
     
     output_neurons = gamma.shape[0]
     out_neuron_idx = in_neuron_idx.clone()
-    feat = make_node_feat(input_neurons, l, NODE_TYPES['neuron'], out_neuron)
-    other_x = feat
+    feat = make_node_feat(input_neurons, layer_num, NODE_TYPES['neuron'], is_output)
+    other_nodes_feats = feat
     
     if self_loops:
         added_neurons = 0
-        added_x = None
+        all_node_feats = None
         weight_edges = torch.cat((out_neuron_idx[None, :],
                                   out_neuron_idx[None, :]), dim=0) # self loops
         edge_index.append(weight_edges)
         edge_index.append(weight_edges.clone())
     else:
-        gamma_neuron = make_node_feat(1, l, NODE_TYPES[f'{norm_type}_gamma'], out_neuron)
-        beta_neuron = make_node_feat(1, l, NODE_TYPES[f'{norm_type}_beta'], out_neuron)
-        added_x = torch.cat([gamma_neuron, beta_neuron], 0)
+        gamma_neuron = make_node_feat(1, layer_num, NODE_TYPES[f'{norm_type}_gamma'], is_output)
+        beta_neuron = make_node_feat(1, layer_num, NODE_TYPES[f'{norm_type}_beta'], is_output)
+        all_node_feats = torch.cat([gamma_neuron, beta_neuron], 0)
         
         gamma_num = curr_idx
         beta_num = gamma_num + 1
@@ -313,9 +364,9 @@ def norm_to_graph(gamma, beta, l, in_neuron_idx, out_neuron=False, curr_idx=0, s
         edge_index.append(weight_edges)
         
     edge_attr.append(make_edge_attr(
-                    gamma.reshape(-1, 1), l, EDGE_TYPES[f'{norm_type}_gamma']))
+                    gamma.reshape(-1, 1), layer_num, EDGE_TYPES[f'{norm_type}_gamma']))
     edge_attr.append(make_edge_attr(
-                    beta.reshape(-1, 1), l, EDGE_TYPES[f'{norm_type}_beta']))
+                    beta.reshape(-1, 1), layer_num, EDGE_TYPES[f'{norm_type}_beta']))
     
     edge_attr = torch.cat(edge_attr, dim=0)
     edge_index = torch.cat(edge_index, dim=1)
@@ -324,22 +375,22 @@ def norm_to_graph(gamma, beta, l, in_neuron_idx, out_neuron=False, curr_idx=0, s
             'output_neurons': output_neurons,
             'in_neuron_idx': in_neuron_idx,
             'out_neuron_idx': out_neuron_idx,
-            'added_x': added_x,
+            'node_feats': all_node_feats,
             'edge_index': edge_index,
             'edge_attr': edge_attr}
     return ret
 
-def ffn_to_graph(weights1, biases1, weights2, biases2, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=True):
+def ffn_to_graph(weights1, biases1, weights2, biases2, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=True):
     # as in PositionwiseFeedForward from Transformer
     # 2-layer MLP with residual connection
-    ret1 = linear_to_graph(weights1, biases1, l, in_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops)
-    curr_idx += ret1['added_x'].shape[0]
-    ret2 = linear_to_graph(weights2, biases2, l+1, ret1['out_neuron_idx'], out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops)
+    ret1 = linear_to_graph(weights1, biases1, layer_num, in_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops)
+    curr_idx += ret1['node_feats'].shape[0]
+    ret2 = linear_to_graph(weights2, biases2, layer_num+1, ret1['out_neuron_idx'], is_output=is_output, curr_idx=curr_idx, self_loops=self_loops)
     
-    added_x = torch.cat([ret1['added_x'], ret2['added_x']], 0)
+    all_node_feats = torch.cat([ret1['node_feats'], ret2['node_feats']], 0)
     residuals = torch.cat([in_neuron_idx.unsqueeze(0), 
                            ret2['out_neuron_idx'].unsqueeze(0)], 0)
-    residuals_feat = make_residual_feat(in_neuron_idx.shape[0], l)
+    residuals_feat = make_residual_feat(in_neuron_idx.shape[0], layer_num)
     edge_index = torch.cat([ret1['edge_index'], ret2['edge_index'], residuals], 1)
     
     
@@ -348,35 +399,35 @@ def ffn_to_graph(weights1, biases1, weights2, biases2, l, in_neuron_idx, out_neu
            'output_neurons': ret2['output_neurons'],
            'in_neuron_idx': in_neuron_idx,
            'out_neuron_idx': ret2['out_neuron_idx'],
-           'added_x': added_x,
+           'node_feats': all_node_feats,
            'edge_index': edge_index,
            'edge_attr': edge_attr}
     return ret
 
-def basic_block_to_graph(params, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=True):
+def basic_block_to_graph(params, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=True):
     # TODO
     # no biases in the convolutions
-    ret1 = conv_to_graph(params[0], None, l, in_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops)
-    if ret1['added_x'] is not None:
-        curr_idx += ret1['added_x'].shape[0]
+    ret1 = conv_to_graph(params[0], None, layer_num, in_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops)
+    if ret1['node_feats'] is not None:
+        curr_idx += ret1['node_feats'].shape[0]
     middle_neuron_idx = ret1['out_neuron_idx']
     
-    ret2 = norm_to_graph(params[1], params[2], l, middle_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops, norm_type='bn')
-    if ret2['added_x'] is not None:
-        curr_idx += ret2['added_x'].shape[0]
+    ret2 = norm_to_graph(params[1], params[2], layer_num, middle_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops, norm_type='bn')
+    if ret2['node_feats'] is not None:
+        curr_idx += ret2['node_feats'].shape[0]
     
-    ret3 = conv_to_graph(params[3], None, l+1, middle_neuron_idx, out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops)
-    if ret3['added_x'] is not None:
-        curr_idx += ret3['added_x'].shape[0]
+    ret3 = conv_to_graph(params[3], None, layer_num+1, middle_neuron_idx, is_output=is_output, curr_idx=curr_idx, self_loops=self_loops)
+    if ret3['node_feats'] is not None:
+        curr_idx += ret3['node_feats'].shape[0]
     out_neuron_idx = ret3['out_neuron_idx']
     
-    ret4 = norm_to_graph(params[4], params[5], l+1, out_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops)
-    if ret4['added_x'] is not None:
-        curr_idx += ret4['added_x'].shape[0]
+    ret4 = norm_to_graph(params[4], params[5], layer_num+1, out_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops)
+    if ret4['node_feats'] is not None:
+        curr_idx += ret4['node_feats'].shape[0]
     
-    # TODO: handle when added_x is None
-    added_x = torch.cat([ret1['added_x'], ret2['added_x'],
-                         ret3['added_x'], ret4['added_x']], 0)
+    # TODO: handle when all_node_feats is None
+    all_node_feats = torch.cat([ret1['node_feats'], ret2['node_feats'],
+                         ret3['node_feats'], ret4['node_feats']], 0)
     edge_index = torch.cat([ret1['edge_index'], ret2['edge_index'],
                             ret3['edge_index'], ret4['edge_index']], 1)
     edge_attr = torch.cat([ret1['edge_attr'], ret2['edge_attr'],
@@ -384,19 +435,19 @@ def basic_block_to_graph(params, l, in_neuron_idx, out_neuron=False, curr_idx=0,
     # residual
     if len(params) == 9:
         # put through 1x1 conv and bn first
-        ret5 = conv_to_graph(params[6], None, l+1, in_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops)
-        if ret5['added_x'] is not None:
-            curr_idx += ret5['added_x'].shape[0]
+        ret5 = conv_to_graph(params[6], None, layer_num+1, in_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops)
+        if ret5['node_feats'] is not None:
+            curr_idx += ret5['node_feats'].shape[0]
         residual_neuron_idx = ret5['out_neuron_idx']
         
-        ret6 = norm_to_graph(params[7], params[8], l+1, residual_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops, norm_type='bn')
-        if ret6['added_x'] is not None:
-            curr_idx += ret6['added_x'].shape[0]
+        ret6 = norm_to_graph(params[7], params[8], layer_num+1, residual_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops, norm_type='bn')
+        if ret6['node_feats'] is not None:
+            curr_idx += ret6['node_feats'].shape[0]
         residual_edge_index = torch.cat([residual_neuron_idx.unsqueeze(0),
                                          out_neuron_idx.unsqueeze(0)], 0)
-        residual_edge_attr = make_residual_feat(out_neuron_idx.shape[0], l)
-        # TODO: handle when added_x is None
-        added_x = torch.cat([added_x, ret5['added_x'], ret6['added_x']], 0)
+        residual_edge_attr = make_residual_feat(out_neuron_idx.shape[0], layer_num)
+        # TODO: handle when all_node_feats is None
+        all_node_feats = torch.cat([all_node_feats, ret5['node_feats'], ret6['node_feats']], 0)
         edge_index = torch.cat([edge_index, ret5['edge_index'],
                                 ret6['edge_index'], residual_edge_index], 1)
         edge_attr = torch.cat([edge_attr, ret5['edge_attr'],
@@ -406,7 +457,7 @@ def basic_block_to_graph(params, l, in_neuron_idx, out_neuron=False, curr_idx=0,
         assert len(params) == 6
         residual_edge_index = torch.cat([in_neuron_idx.unsqueeze(0),
                                          out_neuron_idx.unsqueeze(0)], 0)
-        residual_edge_attr = make_residual_feat(out_neuron_idx.shape[0], l)
+        residual_edge_attr = make_residual_feat(out_neuron_idx.shape[0], layer_num)
         edge_index = torch.cat([edge_index, residual_edge_index], 1)
         edge_attr = torch.cat([edge_attr, residual_edge_attr], 0)
     
@@ -414,27 +465,27 @@ def basic_block_to_graph(params, l, in_neuron_idx, out_neuron=False, curr_idx=0,
            'output_neurons': out_neuron_idx.shape[0],
            'in_neuron_idx': in_neuron_idx,
            'out_neuron_idx': out_neuron_idx,
-           'added_x': added_x,
+           'node_feats': all_node_feats,
            'edge_index': edge_index,
            'edge_attr': edge_attr}
     return ret
 
-def self_attention_to_graph(in_proj_weight, in_proj_bias, out_proj_weight, out_proj_bias, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=False):
+def self_attention_to_graph(in_proj_weight, in_proj_bias, out_proj_weight, out_proj_bias, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=False):
     # abc
     wq, wk, wv = in_proj_weight.chunk(3)
     bq, bk, bv = in_proj_bias.chunk(3)
     
     # TODO: label neurons differently
-    ret1 = linear_to_graph(wq, bq, l, in_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
+    ret1 = linear_to_graph(wq, bq, layer_num, in_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
     middle_neuron_idx = ret1['out_neuron_idx']
-    curr_idx += ret1['added_x'].shape[0]
-    ret2 = linear_to_graph(wk, bk, l, in_neuron_idx, out_neuron_idx=middle_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
-    curr_idx += ret2['added_x'].shape[0]
-    ret3 = linear_to_graph(wv, bv, l, in_neuron_idx, out_neuron_idx=middle_neuron_idx, out_neuron=False, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
-    curr_idx += ret3['added_x'].shape[0]
+    curr_idx += ret1['node_feats'].shape[0]
+    ret2 = linear_to_graph(wk, bk, layer_num, in_neuron_idx, out_neuron_idx=middle_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
+    curr_idx += ret2['node_feats'].shape[0]
+    ret3 = linear_to_graph(wv, bv, layer_num, in_neuron_idx, out_neuron_idx=middle_neuron_idx, is_output=False, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
+    curr_idx += ret3['node_feats'].shape[0]
     
-    ret4 = linear_to_graph(out_proj_weight, out_proj_bias, l+1, middle_neuron_idx, out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
-    curr_idx += ret4['added_x'].shape[0]
+    ret4 = linear_to_graph(out_proj_weight, out_proj_bias, layer_num+1, middle_neuron_idx, is_output=is_output, curr_idx=curr_idx, self_loops=self_loops, label='attention_')
+    curr_idx += ret4['node_feats'].shape[0]
     out_neuron_idx = ret4['out_neuron_idx']
     
     # TODO: number of heads not encoded in any way
@@ -442,11 +493,11 @@ def self_attention_to_graph(in_proj_weight, in_proj_bias, out_proj_weight, out_p
     # TODO: look into residual connection, may need to add to SelfAttention
     residual_edge_index = torch.cat([in_neuron_idx.unsqueeze(0),
                                      out_neuron_idx.unsqueeze(0)], 0)
-    residual_edge_attr = make_residual_feat(out_neuron_idx.shape[0], l)
+    residual_edge_attr = make_residual_feat(out_neuron_idx.shape[0], layer_num)
     
     
     
-    added_x = torch.cat([ret1['added_x'], ret2['added_x'], ret3['added_x'], ret4['added_x']], 0)
+    all_node_feats = torch.cat([ret1['node_feats'], ret2['node_feats'], ret3['node_feats'], ret4['node_feats']], 0)
     edge_index = torch.cat([ret1['edge_index'], ret2['edge_index'],
                             ret3['edge_index'], ret4['edge_index'], residual_edge_index], 1)
     edge_attr = torch.cat([ret1['edge_attr'], ret2['edge_attr'],
@@ -456,17 +507,17 @@ def self_attention_to_graph(in_proj_weight, in_proj_bias, out_proj_weight, out_p
            'output_neurons': out_neuron_idx.shape[0],
            'in_neuron_idx': in_neuron_idx,
            'out_neuron_idx': out_neuron_idx,
-           'added_x': added_x,
+           'node_feats': all_node_feats,
            'edge_index': edge_index,
            'edge_attr': edge_attr}
     return ret
 
 
-def equiv_set_linear_to_graph(weight1, bias1, weight2, l, in_neuron_idx, out_neuron=False, curr_idx=0, self_loops=False):
-    ret1 = linear_to_graph(weight1, bias1, l, in_neuron_idx, out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops, label='deepsets_')
-    curr_idx += ret1['added_x'].shape[0]
+def equiv_set_linear_to_graph(weight1, bias1, weight2, layer_num, in_neuron_idx, is_output=False, curr_idx=0, self_loops=False):
+    ret1 = linear_to_graph(weight1, bias1, layer_num, in_neuron_idx, is_output=is_output, curr_idx=curr_idx, self_loops=self_loops, label='deepsets_')
+    curr_idx += ret1['node_feats'].shape[0]
     out_neuron_idx = ret1['out_neuron_idx']
-    ret2 = linear_to_graph(weight2, None, l, in_neuron_idx, out_neuron_idx=out_neuron_idx, out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops, label='deepsets_')
+    ret2 = linear_to_graph(weight2, None, layer_num, in_neuron_idx, out_neuron_idx=out_neuron_idx, is_output=is_output, curr_idx=curr_idx, self_loops=self_loops, label='deepsets_')
     
     edge_index = torch.cat([ret1['edge_index'], ret2['edge_index']], 1)
     edge_attr = torch.cat([ret1['edge_attr'], ret2['edge_attr']], 0)
@@ -475,20 +526,20 @@ def equiv_set_linear_to_graph(weight1, bias1, weight2, l, in_neuron_idx, out_neu
            'output_neurons': out_neuron_idx.shape[0],
            'in_neuron_idx': in_neuron_idx,
            'out_neuron_idx': out_neuron_idx,
-           'added_x': ret1['added_x'],
+           'node_feats': ret1['node_feats'],
            'edge_index': edge_index,
            'edge_attr': edge_attr}
     return ret
 
 
-def triplanar_to_graph(tgrid, l, out_neuron=False, curr_idx=0):
+def triplanar_to_graph(tgrid, layer_num, is_output=False, curr_idx=0):
     ''' assumes xyz is concatenated to the triplanar features'''
-    assert l == 0, 'triplanar layer must be first layer'
+    assert layer_num == 0, 'triplanar layer must be first layer'
     _, dimx3, N, N = tgrid.shape
     dim = dimx3 // 3
     
     xyz_idx = torch.arange(3)
-    xyz_x = make_node_feat(3, l, NODE_TYPES['neuron'], end_neuron=True)
+    xyz_x = make_node_feat(3, layer_num, NODE_TYPES['neuron'], is_hidden_neuron=False)
     
     # make 3 * N * N nodes for input neurons (one for each spatial position)
     spatial_neuron_idx = torch.arange(3*N*N) + 3
@@ -496,11 +547,11 @@ def triplanar_to_graph(tgrid, l, out_neuron=False, curr_idx=0):
     
     edge_index = torch.cat([spatial_neuron_idx.repeat_interleave(dim).unsqueeze(0), feat_neuron_idx.repeat(3*N*N).unsqueeze(0)], 0)
     
-    spatial_x = make_node_feat(3*N*N, l, NODE_TYPES['triplanar'], end_neuron=True)
-    neuron_x = make_node_feat(dim, l, NODE_TYPES['triplanar'], end_neuron=False)
-    added_x = torch.cat([xyz_x, spatial_x, neuron_x], 0)
+    spatial_x = make_node_feat(3*N*N, layer_num, NODE_TYPES['triplanar'], is_hidden_neuron=False)
+    neuron_x = make_node_feat(dim, layer_num, NODE_TYPES['triplanar'], is_hidden_neuron=True)
+    all_node_feats = torch.cat([xyz_x, spatial_x, neuron_x], 0)
     weights = tgrid.flatten()[:, None]
-    edge_attr = make_edge_attr(weights, l, EDGE_TYPES['triplanar'], triplanar_size=(dim, N))
+    edge_attr = make_edge_attr(weights, layer_num, EDGE_TYPES['triplanar'], triplanar_size=(dim, N))
     
     in_neuron_idx = torch.cat([xyz_idx, spatial_neuron_idx], 0)
     out_neuron_idx = torch.cat([xyz_idx, feat_neuron_idx], 0)
@@ -510,7 +561,7 @@ def triplanar_to_graph(tgrid, l, out_neuron=False, curr_idx=0):
            'output_neurons': out_neuron_idx.shape[0],
            'in_neuron_idx': in_neuron_idx,
            'out_neuron_idx': out_neuron_idx,
-           'added_x': added_x,
+           'node_feats': all_node_feats,
            'edge_index': edge_index,
            'edge_attr': edge_attr}
     return ret

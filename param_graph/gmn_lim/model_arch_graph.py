@@ -1,40 +1,31 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: MIT
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-'''
-https://github.com/NVlabs/Forecasting-Model-Search/blob/master/experiments/gmn/graph_construct/model_arch_graph.py
-'''
-
 import math
 from copy import deepcopy
 import torch
 import torch.nn as nn
 import torch_geometric
-
+import sys
+sys.path.insert(0,'./graph_construct')
 from .constants import NODE_TYPES, EDGE_TYPES, CONV_LAYERS, NORM_LAYERS, RESIDUAL_LAYERS
 from .utils import make_node_feat, make_edge_attr, conv_to_graph, linear_to_graph, norm_to_graph, ffn_to_graph, basic_block_to_graph, self_attention_to_graph, equiv_set_linear_to_graph, triplanar_to_graph
-from .layers import Flatten, PositionwiseFeedForward, BasicBlock, SelfAttention, EquivSetLinear, TriplanarGrid
+from layers import Flatten, PositionwiseFeedForward, BasicBlock, SelfAttention, EquivSetLinear, TriplanarGrid
+import matplotlib.pyplot as plt
 
 # model <--> arch <--> graph
+
 def sequential_to_arch(model):
+    '''
+    Convert a sequential model to an architecture, which is a list of lists where each list contains the 
+        layer type and the weights and biases of the layer.
+    
+    Args:
+        model (torch.nn.Sequential): The sequential model to convert.
+
+    Returns:
+        List[List[torch.nn.Module, torch.Tensor, torch.Tensor]]: The architecture of the model.
+            - The first element of each list is the layer type.
+            - The second element of each list is the weight tensor.
+            - The third element of each list is the bias tensor.
+        '''
     # input can be a nn.Sequential
     # or ordered list of modules
     arch = []
@@ -81,16 +72,31 @@ def sequential_to_arch(model):
     return arch
 
 def arch_to_graph(arch, self_loops=False):
-    
-    curr_idx = 0
-    x = []
-    edge_index = []
-    edge_attr = []
-    layer_num = 0
+    '''
+    Convert an architecture to a graph, which is represented by node features, edge indices, and edge attributes.
+
+    Args:
+        arch (List[List[torch.nn.Module, torch.Tensor, torch.Tensor]]): The architecture of the model.
+            - The first element of each list is the layer type.
+            - The second element of each list is the weight tensor.
+            - The third element of each list is the bias tensor.
+        self_loops (bool, optional): Whether to include self loops. Defaults to False.
+
+    Returns:
+        torch.Tensor: The node feature matrix - num_nodes x 3 node features
+        torch.Tensor: The edge indices - 2 x num_edges (source, target)
+        torch.Tensor: The edge attribute matrix - num_edges x 6 edge features
+
+    '''
+    curr_idx = 0 # used to keep track of current node index relative to the entire graph
+    node_features = [] # stores a list of tensors, each representing the features of a node. num_nodes x 3 node features
+    edge_index = []  # stores a list of tensors, each stores 2xnum_edges (source, target)
+    edge_attr = [] # stores a list of tensors, each stores num_edges x 6 edge features
+    layer_num = 0 # keep track of current layer number
     
     # initialize input nodes
     layer = arch[0]
-    layer_type = layer[0]
+    layer_type = layer[0] 
     if layer_type in CONV_LAYERS:
         in_neuron_idx = torch.arange(layer[1].shape[1])
     elif layer_type in (nn.Linear, PositionwiseFeedForward):
@@ -106,13 +112,15 @@ def arch_to_graph(arch, self_loops=False):
         raise ValueError('Invalid first layer')
     
     for i, layer in enumerate(arch):
+        is_output = (i==len(arch)-1)
         layer_type = layer[0]
-        out_neuron = (i==len(arch)-1)
         if layer_type in CONV_LAYERS:
-            ret = conv_to_graph(layer[1], layer[2], layer_num, in_neuron_idx, out_neuron, curr_idx, self_loops)
+            weight_mat, bias = layer[1], layer[2]
+            ret = conv_to_graph(weight_mat, bias, layer_num, in_neuron_idx, is_output, curr_idx, self_loops)
             layer_num += 1
         elif layer_type == nn.Linear:
-            ret = linear_to_graph(layer[1], layer[2], layer_num, in_neuron_idx, out_neuron, curr_idx, self_loops)
+            weight_mat, bias = layer[1], layer[2]
+            ret = linear_to_graph(weight_mat, bias, layer_num, in_neuron_idx, is_output, curr_idx, self_loops)
             layer_num += 1
         elif layer_type in NORM_LAYERS:
             if layer_type in (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d):
@@ -125,21 +133,23 @@ def arch_to_graph(arch, self_loops=False):
                 norm_type = 'in'
             else:
                 raise ValueError('Invalid norm type')
-            ret = norm_to_graph(layer[1], layer[2], layer_num, in_neuron_idx, out_neuron, curr_idx, self_loops, norm_type=norm_type)
+            gamma = layer[1]
+            beta = layer[2]
+            ret = norm_to_graph(gamma, beta, layer_num, in_neuron_idx, is_output, curr_idx, self_loops, norm_type=norm_type)
         elif layer_type == BasicBlock:
-            ret = basic_block_to_graph(layer[1:], layer_num, in_neuron_idx, out_neuron, curr_idx, self_loops)
+            ret = basic_block_to_graph(layer[1:], layer_num, in_neuron_idx, is_output, curr_idx, self_loops)
             layer_num += 2
         elif layer_type == PositionwiseFeedForward:
-            ret = ffn_to_graph(layer[1], layer[2], layer[3], layer[4], layer_num, in_neuron_idx, out_neuron, curr_idx, self_loops)
+            ret = ffn_to_graph(layer[1], layer[2], layer[3], layer[4], layer_num, in_neuron_idx, is_output, curr_idx, self_loops)
             layer_num += 2
         elif layer_type == SelfAttention:
-            ret = self_attention_to_graph(layer[1], layer[2], layer[3], layer[4], layer_num, in_neuron_idx, out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops)
+            ret = self_attention_to_graph(layer[1], layer[2], layer[3], layer[4], layer_num, in_neuron_idx, is_output=is_output, curr_idx=curr_idx, self_loops=self_loops)
             layer_num += 2
         elif layer_type == EquivSetLinear:
-            ret = equiv_set_linear_to_graph(layer[1], layer[2], layer[3], layer_num, in_neuron_idx, out_neuron=out_neuron, curr_idx=curr_idx, self_loops=self_loops)
+            ret = equiv_set_linear_to_graph(layer[1], layer[2], layer[3], layer_num, in_neuron_idx, is_output=is_output, curr_idx=curr_idx, self_loops=self_loops)
             layer_num += 1
         elif layer_type == TriplanarGrid:
-            ret = triplanar_to_graph(layer[1], layer_num, out_neuron=out_neuron, curr_idx=curr_idx)
+            ret = triplanar_to_graph(layer[1], layer_num, is_output=is_output, curr_idx=curr_idx)
             layer_num += 1
         else:
             raise ValueError('Invalid layer type')
@@ -147,17 +157,16 @@ def arch_to_graph(arch, self_loops=False):
             
         edge_index.append(ret['edge_index'])
         edge_attr.append(ret['edge_attr'])
-        if ret['added_x'] is not None:
-            feat = ret['added_x']
-            x.append(feat)
+        if ret['node_feats'] is not None:
+            feat = ret['node_feats']
+            node_features.append(feat)
             curr_idx += feat.shape[0]
 
-    x = torch.cat(x, dim=0)
+    node_features = torch.cat(node_features, dim=0)
     edge_index = torch.cat(edge_index, dim=1)
     edge_attr = torch.cat(edge_attr, dim=0)
-    return x, edge_index, edge_attr
-def sequential_to_feats(model):
-    return arch_to_graph(sequential_to_arch(model))
+    return node_features, edge_index, edge_attr
+
 def graph_to_arch(arch, weights):
     # arch is the original arch
     arch_new = []
@@ -237,13 +246,35 @@ def arch_to_sequential(arch, model):
             arch_idx += 1
     return model
 
-    
+def visualize_graph(x, edge_index, edge_attr):
+    import networkx as nx
+    from torch_geometric.utils import to_networkx
+    data = torch_geometric.data.Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    G = to_networkx(data)
+    for node in range(x.shape[0]):
+        layer_num = x[node, 0].item()
+        # use layer num as subset key
+        G.nodes[node]['subset'] = layer_num
+    pos = nx.multipartite_layout(G)
+    nx.draw(G, pos, with_labels=True)
+    plt.show()
+
 def tests():
     import networkx as nx
     from torch_geometric.utils import to_networkx
-    from .net_makers import make_transformer, make_resnet
+    from net_makers import make_transformer, make_resnet
 
     def test1(model):
+        '''
+        Test the graph construction from a sequential model.
+
+        Args:
+            model (torch.nn.Sequential): The sequential model to test.
+
+        Raises:
+            AssertionError: If any of the assertions fail.
+
+        '''
         arch = sequential_to_arch(model)
         x, edge_index, edge_attr = arch_to_graph(arch)
         
@@ -261,6 +292,9 @@ def tests():
         assert edge_index.shape[1] >= num_params
     
     def test2(model):
+        '''
+        Test the graph construction from a sequential model, and then reconstruction of the model.
+        '''
         arch = sequential_to_arch(model)
         x, edge_index, edge_attr = arch_to_graph(arch)
         new_arch = graph_to_arch(arch, edge_attr[:, 0])
@@ -279,8 +313,10 @@ def tests():
         for k, v in sd1.items():
             assert (v == sd2[k]).all()
             
-    def test3(model):
-        ''' checks graph properties'''
+    def test3(model, plot=False):
+        ''' 
+        Test the graph construction from a sequential model, and then check the graph is a DAG and weakly connected.
+        '''
         arch = sequential_to_arch(model)
         x, edge_index, edge_attr = arch_to_graph(arch)
         data = torch_geometric.data.Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
@@ -291,6 +327,9 @@ def tests():
         
         # G should be weakly connected
         assert nx.is_weakly_connected(G)
+
+        if plot:
+            visualize_graph(x, edge_index, edge_attr)
         
     def test4():
         # hard coded some small neural networks
@@ -315,8 +354,20 @@ def tests():
         assert num_params == 68
         assert edge_index.shape[1] == edge_attr.shape[0] == 70
         # lmao i actually wrote this all out by hand
-        assert (edge_index == torch.tensor([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 7, 8, 8, 0, 0, 11, 11, 12, 12, 9, 10],
-                                            [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 5, 6, 9, 10, 9, 10, 9, 10, 5, 6]]) ).all()
+        expected = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 7, 8, 8, 0, 0, 11, 11, 12, 12, 9, 10],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 
+            5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 5, 6, 9, 10, 9, 10, 9, 10, 5, 6]]
+        visualize_graph(x, edge_index, edge_attr)
+        edge_index_np = edge_index.cpu().numpy()
+        for i in range(len(expected[0])):
+            if edge_index[0, i] != expected[0][i] or edge_index[1, i] != expected[1][i]:
+                print(i, edge_index_np[0, i], expected[0][i], edge_index_np[1, i], expected[1][i])
+            assert (edge_index_np[0, i] == expected[0][i] and edge_index_np[1, i] == expected[1][i])
+        assert (edge_index == torch.tensor([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 7, 8, 8, 0, 0, 11, 11, 12, 12, 9, 10],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 5, 6, 9, 10, 9, 10, 9, 10, 5, 6]]) ).all()
         
         
         model = nn.Sequential(nn.Linear(2, 3, bias=False), nn.ReLU(), nn.LayerNorm(3), nn.Linear(3, 1))
@@ -426,12 +477,12 @@ def tests():
         print('Model:', i+1)
         test1(model)
         test2(model)
-        test3(model)
-    print("test4")
+        test3(model, plot=False)
+        
     test4()
     
     print('Tests pass!')
 
 if __name__ == '__main__':
-    print()
     tests()
+
