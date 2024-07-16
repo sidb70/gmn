@@ -163,3 +163,4 @@ cython_debug/
 node_modules/
 temp.ipynb
 data/
+gmn_lim_old/
