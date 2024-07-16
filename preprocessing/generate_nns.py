@@ -1,9 +1,9 @@
 from typing import Tuple
 import torch
 import torch.nn as nn
-
+class Flatten(nn.Module):
+    def forward(self, x): return x.view(x.shape[0], -1)
 def generate_random_cnn(
-    in_dim: int = 32,
     in_channels: int = 3,
     n_classes: int = 10,
     n_conv_layers_range: Tuple[int, int] = (2, 4),
@@ -16,8 +16,6 @@ def generate_random_cnn(
   well as varying hidden units in each layer. Assumes input and kernels are 2d and square.
 
   Args:
-  - in_dim: 
-      int, the height and width of the input image
   - in_channels: 
       int, the number of channels in the input image
   - n_classes: 
@@ -44,27 +42,22 @@ def generate_random_cnn(
     if conv_layer_number != 0:
       # for all layers except the first, the in dim is the out dim of the previous layer,
       # and the in channels is the out channels of the previous layer
-      in_dim = layers[-1][1][1]
-      in_channels = layers[-1][1][0]
+      in_channels = layers[-1][-1]
 
     # For each conv layer, randomly determine the number of hidden channels
     out_channels = 2**torch.randint(*log_hidden_channels_range, (1,)).item()
     kernel_size = 3
     padding = 0
-
-    # calculate the output shape of the conv layer
-    out_shape = torch.Size([out_channels, in_dim - kernel_size + 1 + 2*padding, in_dim - kernel_size + 1 + 2*padding])
-
+    out_shape = out_channels
     # add the conv layer, batch norm and activation
     layers.append([nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding), out_shape])
-    layers.append([nn.BatchNorm2d(out_channels), out_shape])
     layers.append([nn.ReLU(), out_shape])
-
     conv_layer_number += 1
 
-  # 2: flatten layer
-  in_dim = torch.tensor(out_shape).flatten().prod()
-  layers.append([nn.Flatten(), torch.Size([in_dim])])
+  # 2: flatten layer. input dim is the output shape of the last conv layer
+  layers.append([nn.AdaptiveAvgPool2d((1,1)), out_shape]) 
+  layers.append([Flatten(), out_shape])
+  layers.append([nn.LayerNorm(out_shape), out_shape])
 
   # 3: fc layers
   linear_layer_number = 0
@@ -72,7 +65,7 @@ def generate_random_cnn(
 
   while linear_layer_number < n_fc_layers:
     
-    in_dim = layers[-1][1][0]
+    in_dim = layers[-1][-1]
 
     if linear_layer_number < n_fc_layers - 1:
       # for all layers except the last, randomly determine the number of hidden units
@@ -81,8 +74,8 @@ def generate_random_cnn(
       out_dim = n_classes
 
     # add the linear layer and activation
-    layers.append([nn.Linear(in_dim, out_dim), torch.Size([out_dim])])
-    layers.append([nn.ReLU(), torch.Size([out_dim])])
+    layers.append([nn.Linear(in_dim, out_dim), out_dim])
+    layers.append([nn.ReLU(), out_dim])
     linear_layer_number += 1
 
   # combine layers into a sequential
