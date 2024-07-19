@@ -10,9 +10,7 @@ from torch.utils.data import DataLoader
 
 import torch
 from param_graph.preprocessing.generate_nns import generate_random_cnn
-# from param_graph.seq_to_net import seq_to_net
 from param_graph.gmn_lim.model_arch_graph import sequential_to_feats
-# sys.path.append('..\\..')
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def generate_data(

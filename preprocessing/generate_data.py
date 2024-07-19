@@ -11,9 +11,10 @@ from torchvision.datasets import CIFAR10
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from preprocessing.generate_nns import generate_random_cnn
-from param_graph import seq_to_net
+from param_graph.gmn_lim.model_arch_graph import seq_to_feats
 
 
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def train_random_cnns(
     n_architectures=10,
@@ -23,6 +24,7 @@ def train_random_cnns(
     lr=0.001, 
     momentum=0.9,
     directory='data/cnn',
+    replace_if_existing=False,
     **random_cnn_kwargs
 ):
     """
@@ -31,7 +33,7 @@ def train_random_cnns(
     Args:
     - n_architectures: int, the number of architectures to generate
     - n_epochs: int, the number of epochs to train each architecture
-    - other hyperparameters: see generate_random_cnn
+    - random_cnn_kwargs: see generate_random_cnn
 
     Saves these files to the specified directory:
     - features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
@@ -62,11 +64,11 @@ def train_random_cnns(
     
     testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
 
-    features = [[], [], []]
+    features = []
     accuracies = []
 
     for i in range(n_architectures):
-        cnn = generate_random_cnn(**random_cnn_kwargs)
+        cnn = generate_random_cnn(**random_cnn_kwargs).to(DEVICE)
 
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
@@ -86,7 +88,7 @@ def train_random_cnns(
 
                 running_loss += loss.item()
                 if k % 1 == 0:
-                    print(f'\rModel {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss/2000:.3f}', end='')
+                    print(f'\rTraining model {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss/2000:.3f}', end='')
                     running_loss = 0.0
 
         with torch.no_grad():
@@ -102,19 +104,35 @@ def train_random_cnns(
 
             accuracy = correct / total
 
-        print(f"\nAccuracy: {accuracy}\n")
+        print(f"\nAccuracy: {accuracy}")
 
-        node_feats, edge_indices, edge_feats = seq_to_net(cnn).get_feature_tensors()
+        print('total params', sum(p.numel() for p in cnn.parameters()))
+        print(cnn)
+        node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
 
-        features[0].append(node_feats)
-        features[1].append(edge_indices)
-        features[2].append(edge_feats)
+        print(edge_indices.shape, edge_feats.shape)
+
+        features.append((node_feats, edge_indices, edge_feats))
         accuracies.append(accuracy)
 
     print('saving data')
 
     # ensure that the directory is valid and exists
     os.makedirs(directory, exist_ok=True)
+
+    if replace_if_existing:
+        features_path = os.path.join(directory, 'features.pt')
+        accuracies_path = os.path.join(directory, 'accuracies.pt')
+        if os.path.exists(features_path):
+            os.remove(features_path)
+        if os.path.exists(accuracies_path):
+            os.remove(accuracies_path)
+
+    else:
+        if os.path.exists(os.path.join(directory, 'features.pt')) and os.path.exists(os.path.join(directory, 'accuracies.pt')):
+            # load
+            features = torch.load(os.path.join(directory, 'features.pt')) + features
+            accuracies = torch.load(os.path.join(directory, 'accuracies.pt')) + accuracies
 
     torch.save(features, os.path.join(directory, 'features.pt'))
     torch.save(accuracies, os.path.join(directory, 'accuracies.pt'))

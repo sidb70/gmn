@@ -69,7 +69,7 @@ class LayerFactory:
 
         bias_node = Node(start_node_id, NodeFeatures(layer_num=layer_num, rel_index=-1, node_type=NodeType.LINEAR_BIAS))
         linear_layer.add_node(bias_node)
-        start_node_id +=1
+        start_node_id += 1
 
         for i, weights in enumerate(layer.weight.data):
             # weights corresponds to the weights for each input feature for the ith output neuron
@@ -227,7 +227,7 @@ class LayerFactory:
         return non_parametric_layer
         
         
-    def create_layer(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
+    def module_to_graph(self, module: nn.Module, layer_num: int, start_node_id: int, **kwargs) -> NetworkLayer:
         '''
         Create a network layer from a PyTorch layer
         - Dispatches to the appropriate layer creation method based on the layer type

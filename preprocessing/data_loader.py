@@ -1,13 +1,10 @@
 import torch
 import torch.nn as nn
 from argparse import ArgumentParser
-from param_graph.seq_to_net import seq_to_net
 
 def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
     # load feature matrices and labels
-    feats, labels = torch.load(feats_path), torch.load(labels_path)
-    node_feats, edge_indices, edge_feats = feats
-    return node_feats, edge_indices, edge_feats, labels
+    return torch.load(feats_path), torch.load(labels_path)
 
     ## mock data
     nn1 = nn.Sequential(

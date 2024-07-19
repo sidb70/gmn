@@ -7,10 +7,24 @@ import sys
 sys.path.insert(0,'./graph_construct')
 from .constants import NODE_TYPES, EDGE_TYPES, CONV_LAYERS, NORM_LAYERS, RESIDUAL_LAYERS
 from .utils import make_node_feat, make_edge_attr, conv_to_graph, linear_to_graph, norm_to_graph, ffn_to_graph, basic_block_to_graph, self_attention_to_graph, equiv_set_linear_to_graph, triplanar_to_graph
-from layers import Flatten, PositionwiseFeedForward, BasicBlock, SelfAttention, EquivSetLinear, TriplanarGrid
+from .layers import Flatten, PositionwiseFeedForward, BasicBlock, SelfAttention, EquivSetLinear, TriplanarGrid
 import matplotlib.pyplot as plt
 
 # model <--> arch <--> graph
+
+def seq_to_feats(seq: nn.Sequential):
+    '''
+    Convert a sequential model to node features and edge attributes.
+
+    Args:
+        seq (torch.nn.Sequential): The sequential model to convert.
+
+    Returns:
+        torch.Tensor: The node feature matrix - num_nodes x 3 node features
+        torch.Tensor: The edge attribute matrix - num_edges x 6 edge features
+
+    '''
+    return arch_to_graph(sequential_to_arch(seq))
 
 def sequential_to_arch(model):
     '''
@@ -136,6 +150,7 @@ def arch_to_graph(arch, self_loops=False):
             gamma = layer[1]
             beta = layer[2]
             ret = norm_to_graph(gamma, beta, layer_num, in_neuron_idx, is_output, curr_idx, self_loops, norm_type=norm_type)
+            print(ret['out_neuron_idx'])
         elif layer_type == BasicBlock:
             ret = basic_block_to_graph(layer[1:], layer_num, in_neuron_idx, is_output, curr_idx, self_loops)
             layer_num += 2
@@ -155,12 +170,14 @@ def arch_to_graph(arch, self_loops=False):
             raise ValueError('Invalid layer type')
         in_neuron_idx = ret['out_neuron_idx']
             
-        edge_index.append(ret['edge_index'])
-        edge_attr.append(ret['edge_attr'])
+        edge_index.append(ret['edge_index']) # 2 x num_edges
+        edge_attr.append(ret['edge_attr']) # num_edges x 6
         if ret['node_feats'] is not None:
             feat = ret['node_feats']
             node_features.append(feat)
             curr_idx += feat.shape[0]
+
+        print(len(ret['edge_attr']), len(ret['edge_index'][0]), layer_type)
 
     node_features = torch.cat(node_features, dim=0)
     edge_index = torch.cat(edge_index, dim=1)
