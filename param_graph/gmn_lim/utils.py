@@ -270,14 +270,14 @@ def linear_to_graph(weight, bias, layer_num, in_neuron_idx, is_output=False, cur
     edge_attr.append(make_edge_attr(
                     weight.reshape(-1, 1), layer_num, EDGE_TYPES['lin_weight']))
     
-    print(edge_attr[0].shape)
+    # print(edge_attr[0].shape)
 
     weight_edges = torch.cartesian_prod(out_neuron_idx, in_neuron_idx).T
     temp = torch.zeros_like(weight_edges)
     temp[1], temp[0] = weight_edges[0], weight_edges[1]
     weight_edges = temp # 2 x num_edges. each col represents an edge, with row1 =in_neuron, row2=out_neuron
 
-    print(weight_edges.shape, edge_attr[0].shape, len(edge_attr))
+    # print(weight_edges.shape, edge_attr[0].shape, len(edge_attr))
 
     assert weight_edges.shape[1] == edge_attr[0].shape[0]
     edge_index.append(weight_edges)
