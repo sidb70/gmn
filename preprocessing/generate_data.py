@@ -78,7 +78,7 @@ def train_random_cnns(
             running_loss = 0.0
             for k, data in enumerate(trainloader, 0):
                 inputs, labels = data
-
+                inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
                 optimizer.zero_grad()
 
                 outputs = cnn(inputs)
@@ -96,7 +96,7 @@ def train_random_cnns(
             total = 0
             for data in testloader:
                 images, labels = data
-
+                images, labels = images.to(DEVICE), labels.to(DEVICE)
                 outputs = cnn(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
@@ -106,11 +106,11 @@ def train_random_cnns(
 
         print(f"\nAccuracy: {accuracy}")
 
-        print('total params', sum(p.numel() for p in cnn.parameters()))
-        print(cnn)
+        # print('total params', sum(p.numel() for p in cnn.parameters()))
+        # print(cnn)
         node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
 
-        print(edge_indices.shape, edge_feats.shape)
+        # print(edge_indices.shape, edge_feats.shape)
 
         features.append((node_feats, edge_indices, edge_feats))
         accuracies.append(accuracy)
@@ -136,3 +136,6 @@ def train_random_cnns(
 
     torch.save(features, os.path.join(directory, 'features.pt'))
     torch.save(accuracies, os.path.join(directory, 'accuracies.pt'))
+
+if __name__ == '__main__':
+    train_random_cnns(n_architectures=10, train_size=1000, n_epochs=2, replace_if_existing=True, directory='data/cnn')
