@@ -4,8 +4,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 import torchvision
-import numpy as np
-#from torch.utils.data import DataLoader
+from .write_ffcv_data import cifar_10_to_beton
 from ffcv.loader import Loader, OrderOption
 from ffcv.transforms import ToTensor, ToDevice,  RandomHorizontalFlip, RandomTranslate, Cutout, ToTorchImage, Convert, Squeeze
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
@@ -20,7 +19,6 @@ DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 def train_random_cnns(
     n_architectures=10,
-    train_size=None,
     batch_size=512,
     n_epochs=2,
     lr=0.001, 
@@ -44,6 +42,10 @@ def train_random_cnns(
     """
 
     torch.manual_seed(0)
+
+    cifar_10_dir = os.path.join(directory, 'cifar10')
+    if not os.path.exists(os.path.join(cifar_10_dir, 'cifar_train.beton')):
+        cifar_10_to_beton(cifar_10_dir)
 
     ###
     #https://docs.ffcv.io/ffcv_examples/cifar10.html
