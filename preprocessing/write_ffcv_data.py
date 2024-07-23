@@ -1,4 +1,6 @@
-
+'''
+https://docs.ffcv.io/ffcv_examples/cifar10.html
+'''
 from argparse import ArgumentParser 
 from ffcv.writer import DatasetWriter
 from ffcv.fields import  IntField, RGBImageField
