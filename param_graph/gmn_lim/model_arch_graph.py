@@ -150,7 +150,7 @@ def arch_to_graph(arch, self_loops=False):
             gamma = layer[1]
             beta = layer[2]
             ret = norm_to_graph(gamma, beta, layer_num, in_neuron_idx, is_output, curr_idx, self_loops, norm_type=norm_type)
-            print(ret['out_neuron_idx'])
+            # print(ret['out_neuron_idx'])
         elif layer_type == BasicBlock:
             ret = basic_block_to_graph(layer[1:], layer_num, in_neuron_idx, is_output, curr_idx, self_loops)
             layer_num += 2
@@ -177,7 +177,7 @@ def arch_to_graph(arch, self_loops=False):
             node_features.append(feat)
             curr_idx += feat.shape[0]
 
-        print(len(ret['edge_attr']), len(ret['edge_index'][0]), layer_type)
+        # print(len(ret['edge_attr']), len(ret['edge_index'][0]), layer_type)
 
     node_features = torch.cat(node_features, dim=0)
     edge_index = torch.cat(edge_index, dim=1)

@@ -128,9 +128,9 @@ class BaseMPNN(nn.Module):
         # can have multi
         for i, layer in enumerate(self.meta_layers):
             # print("calling layer: ", i)
-            print("x device",  x.device)
-            print("edge index device", edge_index.device)
-            print("edge attr device", edge_attr.device)
+            # print("x device",  x.device)
+            # print("edge index device", edge_index.device)
+            # print("edge attr device", edge_attr.device)
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
                 # print('calling norm layers')
