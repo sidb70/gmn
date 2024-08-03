@@ -1,18 +1,20 @@
 from param_graph.gmn_lim.model_arch_graph import seq_to_feats
-from preprocessing.generate_nns import generate_random_cnn
 import os
 import sys
 import torch
 import torch.nn as nn
 from torch import optim
 import torchvision
+import numpy as np
 from .write_ffcv_data import cifar_10_to_beton
 from ffcv.loader import Loader, OrderOption
 from ffcv.transforms import ToTensor, ToDevice,  RandomHorizontalFlip, RandomTranslate, Cutout, ToTorchImage, Convert, Squeeze
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
 from ffcv.fields.basics import Operation
 from typing import List
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from preprocessing.generate_nns import generate_random_cnn
 
 
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -64,6 +66,7 @@ def train_random_cnns(
     lr=0.001,
     momentum=0.9,
     num_workers=4,
+    optimizer_type=None,
     directory='data/',
     replace_if_existing=False,
     save=True,
@@ -113,17 +116,21 @@ def train_random_cnns(
                                 drop_last=(name == 'train'),
                                 pipelines={'image': image_pipeline,
                                         'label': label_pipeline})
-    ###
-    trainloader = loaders['train']
-    testloader = loaders['test']
-    features = []
-    accuracies = []
+    ###                             
+    trainloader = loaders['train']  
+    testloader = loaders['test']    
+    features = []                   
+    accuracies = []                 
 
     for i in range(n_architectures):
         cnn = generate_random_cnn(**random_cnn_kwargs).to(DEVICE)
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
+        if optimizer_type is None:
+            optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
+
+        else:
+            optimizer = optimizer_type(cnn.parameters(), lr=lr, momentum=momentum)
 
         for j in range(n_epochs):
 
