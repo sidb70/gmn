@@ -164,3 +164,4 @@ node_modules/
 temp.ipynb
 data/
 gmn_lim_old/
+.vscode

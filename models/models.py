@@ -13,15 +13,17 @@ import torch.nn as nn
 from torch_geometric.utils import scatter
 from torch_geometric.nn import MetaLayer
 
+
 class EdgeModel(nn.Module):
     '''
     from https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.nn.models.MetaLayer.html
     '''
+
     def __init__(self, in_dim, out_dim, use_activation=True):
         super().__init__()
         self.phi_e = nn.Sequential(nn.Linear(in_dim, out_dim),
-                                      nn.ReLU() if use_activation else nn.Identity())
-                                   
+                                   nn.ReLU() if use_activation else nn.Identity())
+
     def forward(self, src, dst, edge_attr, u, batch):
         ''''
         Forward pass for edge update (phi^e)
@@ -35,11 +37,13 @@ class EdgeModel(nn.Module):
         # print("edge forward src: ", src.shape, "dst: ", dst.shape, "edge_attr: ", edge_attr.shape)
         data = torch.cat([src, dst, edge_attr], 1)
         return self.phi_e(data)
-    
+
+
 class NodeModel(nn.Module):
     '''
     from https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.nn.models.MetaLayer.html
     '''
+
     def __init__(self, in_dim, out_dim, use_activation=True):
         super().__init__()
         self.node_mlp_1 = nn.Sequential(
@@ -47,11 +51,11 @@ class NodeModel(nn.Module):
             nn.ReLU() if use_activation else nn.Identity()
         )
         self.node_mlp_2 = nn.Sequential(
-            nn.Linear(in_dim , out_dim),
+            nn.Linear(in_dim, out_dim),
             nn.ReLU() if use_activation else nn.Identity()
         )
-                                   
-    def forward(self, x, edge_index, edge_attr, u, batch)-> torch.Tensor:
+
+    def forward(self, x, edge_index, edge_attr, u, batch) -> torch.Tensor:
         '''
         Forward pass for node update (phi^v)
         Args:
@@ -65,13 +69,13 @@ class NodeModel(nn.Module):
         data = torch.cat([x[row], edge_attr], dim=1)
         data = self.node_mlp_1(data)
         data = scatter(data, col, dim=0, dim_size=x.size(0),
-                      reduce='mean')
+                       reduce='mean')
         data = torch.cat([x, data], dim=1)
         # print("called node model, data shape: ", data.shape)
         return self.node_mlp_2(data)
-    
 
-#### global model not currently used by mpnn gmn
+
+# global model not currently used by mpnn gmn
 # class GlobalModel:
 #     def __init__(self, in_dim, out_dim):
 #         self.global_mlp = nn.Sequential(
@@ -82,7 +86,7 @@ class NodeModel(nn.Module):
 #     def forward(self, x, edge_index, edge_attr, u, batch):
 #         '''
 #         Forward pass for global update (phi^u)
-        
+
 #         # x: [N, F_x], where N is the number of nodes.
 #         # edge_index: [2, E] with max entry N - 1.
 #         # edge_attr: [E, F_e]
@@ -94,7 +98,7 @@ class NodeModel(nn.Module):
 #             scatter(x, batch, dim=0, reduce='mean'),
 #         ], dim=1)
 #         return self.global_mlp(out)
-#     def __call__(self, *args, **kwargs):    
+#     def __call__(self, *args, **kwargs):
 #         return self.forward(*args, **kwargs)
 
 class BaseMPNN(nn.Module):
@@ -104,9 +108,12 @@ class BaseMPNN(nn.Module):
         node_in_dim = node_feat_dim + edge_hidden_dim
         self.meta_layers = nn.ModuleList(
             [
-                MetaLayer(EdgeModel(edge_in_dim, edge_hidden_dim), NodeModel(node_in_dim, node_hidden_dim)),
-                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim), NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
-                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim), NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(edge_in_dim, edge_hidden_dim),
+                          NodeModel(node_in_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim),
+                          NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim),
+                          NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
             ])
         self.node_norm = nn.BatchNorm1d(node_hidden_dim)
         self.edge_norm = nn.BatchNorm1d(edge_hidden_dim)
@@ -114,12 +121,12 @@ class BaseMPNN(nn.Module):
 
     def forward(self, x, edge_index, edge_attr, u=None, batch=None):
         # print("Base MPNN forward")
-        # print("x shape", x.shape)   
+        # print("x shape", x.shape)
         # print("edge index shape", edge_index.shape)
         # print("edge attr shape", edge_attr.shape)
 
-        ## can have multi 
-        for i,layer in enumerate(self.meta_layers):
+        # can have multi
+        for i, layer in enumerate(self.meta_layers):
             # print("calling layer: ", i)
             print("x device",  x.device)
             print("edge index device", edge_index.device)
@@ -134,7 +141,9 @@ class BaseMPNN(nn.Module):
         # print("Node attr readout shape", node_attr_readout.shape, "edge attr readout shape", edge_attr_readout.shape)
         meta_out = torch.cat([node_attr_readout, edge_attr_readout], dim=1)
         return self.regression(meta_out)
-if __name__=='__main__':
+
+
+if __name__ == '__main__':
 
     edge_attr = torch.randn(6, 6)
     edge_index = torch.tensor([[0, 1, 1, 4, 3, 4],
@@ -143,5 +152,6 @@ if __name__=='__main__':
     u = None
     batch = None
     # base mpnn test
-    base_mpnn = BaseMPNN(node_feat_dim=3, edge_feat_dim=6, node_hidden_dim=10, edge_hidden_dim=10)
+    base_mpnn = BaseMPNN(node_feat_dim=3, edge_feat_dim=6,
+                         node_hidden_dim=10, edge_hidden_dim=10)
     base_mpnn.forward(x, edge_index, edge_attr, u, batch)
