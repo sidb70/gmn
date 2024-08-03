@@ -22,7 +22,6 @@ DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 def train_random_cnns_hyperparams(
     n_architectures=10,
-    train_size=None,
     directory='data/cnn_hyo',
     replace_if_existing=False,
     **random_cnn_kwargs,
@@ -37,13 +36,18 @@ def train_random_cnns_hyperparams(
         n_epochs = np.random.randint(1, 10)
         momentum = np.random.uniform(0.1, 0.9)
 
+        print("training random cnn with hyperparameters:")
+        print(f"batch_size: {batch_size}")
+        print(f"lr: {lr}")
+        print(f"n_epochs: {n_epochs}")
+        print(f"momentum: {momentum}")
+
         features, accuracies = train_random_cnns(
             n_architectures=1,
             batch_size=batch_size,
             n_epochs=n_epochs,
             lr=lr,
             momentum=momentum,
-            train_size=train_size,
             directory=directory,
             replace_if_existing=replace_if_existing,
             save=False,
@@ -140,14 +144,16 @@ def train_random_cnns(
                 inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
                 optimizer.zero_grad()
 
-                outputs = cnn(inputs)
+                outputs = cnn(inputs).reshape(-1,10)
+                labels = labels.reshape(-1)
                 loss = criterion(outputs, labels)
+                running_loss += loss.item()
                 loss.backward()
                 optimizer.step()
 
-                running_loss += loss.item()
+                
                 if k % 1 == 0:
-                    print(f'\rTraining model {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss/2000:.3f}', end='')
+                    print(f'\rTraining model {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}', end='')
                     running_loss = 0.0
 
         with torch.no_grad():
