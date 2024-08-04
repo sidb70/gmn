@@ -149,7 +149,7 @@ class HPOMPNN(BaseMPNN):
         )
     def forward(self, x, edge_index, edge_attr, hpo, u=None, batch=None):
         x, edge_attr = self.encoder(x, edge_attr)
-        hpo = self.hpo_encoder(hpo)
+        hpo = self.hpo_encoder(hpo).unsqueeze(0)
         for i, layer in enumerate(self.meta_layers):
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
