@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 from torch_geometric.utils import scatter
 from torch_geometric.nn import MetaLayer
+from gmn_lim.encoders import NodeEdgeFeatEncoder
 
 
 class EdgeModel(nn.Module):
@@ -102,35 +103,28 @@ class NodeModel(nn.Module):
 #         return self.forward(*args, **kwargs)
 
 class BaseMPNN(nn.Module):
-    def __init__(self, node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim):
+    def __init__(self, hidden_dim):
         super().__init__()
-        edge_in_dim = 2*node_feat_dim + edge_feat_dim
-        node_in_dim = node_feat_dim + edge_hidden_dim
+        self.encoder = NodeEdgeFeatEncoder(hidden_dim=hidden_dim)
+        edge_in_dim = 3*hidden_dim
+        node_in_dim = 2*hidden_dim
         self.meta_layers = nn.ModuleList(
             [
-                MetaLayer(EdgeModel(edge_in_dim, edge_hidden_dim),
-                          NodeModel(node_in_dim, node_hidden_dim)),
-                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim),
-                          NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
-                MetaLayer(EdgeModel(2 * node_hidden_dim + edge_hidden_dim, edge_hidden_dim),
-                          NodeModel(node_hidden_dim + edge_hidden_dim, node_hidden_dim)),
+                MetaLayer(EdgeModel(edge_in_dim, hidden_dim),
+                          NodeModel(node_in_dim, hidden_dim)),
+                MetaLayer(EdgeModel(edge_in_dim, hidden_dim),
+                          NodeModel(node_in_dim, hidden_dim)),
+                MetaLayer(EdgeModel(edge_in_dim, hidden_dim),
+                          NodeModel(node_in_dim, hidden_dim)),
             ])
-        self.node_norm = nn.BatchNorm1d(node_hidden_dim)
-        self.edge_norm = nn.BatchNorm1d(edge_hidden_dim)
-        self.regression = nn.Linear(node_hidden_dim + edge_hidden_dim, 1)
+        self.node_norm = nn.BatchNorm1d(hidden_dim)
+        self.edge_norm = nn.BatchNorm1d(hidden_dim)
+        self.regression = nn.Linear(2*hidden_dim, 1)
 
     def forward(self, x, edge_index, edge_attr, u=None, batch=None):
         # print("Base MPNN forward")
-        # print("x shape", x.shape)
-        # print("edge index shape", edge_index.shape)
-        # print("edge attr shape", edge_attr.shape)
-
-        # can have multi
+        x, edge_attr = self.encoder(x, edge_attr)
         for i, layer in enumerate(self.meta_layers):
-            # print("calling layer: ", i)
-            # print("x device",  x.device)
-            # print("edge index device", edge_index.device)
-            # print("edge attr device", edge_attr.device)
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
                 # print('calling norm layers')

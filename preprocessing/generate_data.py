@@ -1,4 +1,4 @@
-from param_graph.gmn_lim.model_arch_graph import seq_to_feats
+from gmn_lim.model_arch_graph import seq_to_feats
 import os
 import sys
 import torch
@@ -8,7 +8,7 @@ import torchvision
 import numpy as np
 from .write_ffcv_data import cifar_10_to_beton
 from ffcv.loader import Loader, OrderOption
-from ffcv.transforms import ToTensor, ToDevice,  RandomHorizontalFlip, RandomTranslate, Cutout, ToTorchImage, Convert, Squeeze
+from ffcv.transforms import ToTensor, ToDevice,  ToTorchImage, Convert, Squeeze
 from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
 from ffcv.fields.basics import Operation
 from typing import List
@@ -31,7 +31,7 @@ def train_random_cnns_hyperparams(
     accuracies = []
 
     for i in range(n_architectures):
-        batch_size = np.random.randint(1, 10)
+        batch_size = np.random.randint(2, 1024)
         lr = np.random.uniform(0.0001, 0.1)
         n_epochs = np.random.randint(1, 10)
         momentum = np.random.uniform(0.1, 0.9)
@@ -162,7 +162,8 @@ def train_random_cnns(
             for data in testloader:
                 images, labels = data
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
-                outputs = cnn(images)
+                outputs = cnn(images).reshape(-1,10)
+                labels = labels.reshape(-1)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()

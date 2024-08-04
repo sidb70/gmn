@@ -56,7 +56,9 @@ def eval_step(model, feats, labels, batch_size, criterion):
         outs = []
         for j in range(i, min(i+batch_size, len(feats))):
             node_feat, edge_index, edge_feat = feats[j]
-            node_feat, edge_index, edge_feat = torch.tensor(node_feat).to(DEVICE), torch.tensor(edge_index).to(DEVICE), torch.tensor(edge_feat).to(DEVICE)
+            node_feat, edge_index, edge_feat = torch.tensor(node_feat,dtype=torch.float32).to(DEVICE), \
+                                               torch.tensor(edge_index).to(DEVICE), \
+                                               torch.tensor(edge_feat,dtype=torch.float32).to(DEVICE)
             out = model(node_feat, edge_index, edge_feat)
             outs.append(out)
     outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
@@ -72,6 +74,7 @@ def train_mpnn(args):
     edge_feat_dim = args.edge_feat_dim
     node_hidden_dim = args.node_hidden_dim
     edge_hidden_dim = args.edge_hidden_dim
+    hidden_dim = args.hidden_dim
     feats_path = args.feats_path
     label_path = args.label_path
     batch_size = args.batch_size
@@ -83,7 +86,7 @@ def train_mpnn(args):
     feats, labels = get_dataset(feats_path, label_path)
     
     train_set, valid_set, test_set = split(valid_size, test_size, feats, labels)
-    model = BaseMPNN(node_feat_dim, edge_feat_dim, node_hidden_dim, edge_hidden_dim).to(DEVICE)
+    model = BaseMPNN(hidden_dim).to(DEVICE)
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -112,6 +115,7 @@ if __name__ == '__main__':
     args.add_argument('--edge_feat_dim', type=int, default=6)
     args.add_argument('--node_hidden_dim', type=int, default=16)
     args.add_argument('--edge_hidden_dim', type=int, default=16)
+    args.add_argument('--hidden_dim', type=int, default=8)
     args.add_argument('--batch_size', type=int, default=2)
     args.add_argument('--valid_size', type=float, default=0.2)
     args.add_argument('--test_size', type=float, default=0.1)
