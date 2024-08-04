@@ -7,7 +7,7 @@ from torch import optim
 import torchvision
 import numpy as np
 
-use_ffcv = False
+use_ffcv = True
 if use_ffcv:
     from .write_ffcv_data import cifar_10_to_beton
     from ffcv.loader import Loader, OrderOption
@@ -42,7 +42,7 @@ def train_random_cnns_hyperparams(
     for i in range(n_architectures):
         batch_size = np.random.randint(2, 1024)
         lr = np.random.uniform(0.0001, 0.1)
-        n_epochs = np.random.randint(1, 10)
+        n_epochs = np.random.randint(50, 150)
         momentum = np.random.uniform(0.1, 0.9)
         hpo_vec = [batch_size, lr, n_epochs, momentum]
         #hpo_vec = []
@@ -76,7 +76,7 @@ def train_random_cnns(
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data
-
+a
     Args:
     - n_architectures: int, the number of architectures to generate
     - n_epochs: int, the number of epochs to train each architecture
