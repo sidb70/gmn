@@ -7,7 +7,6 @@ from torch import optim
 import torchvision
 import numpy as np
 
-
 use_ffcv = False
 if use_ffcv:
     from .write_ffcv_data import cifar_10_to_beton
@@ -34,7 +33,6 @@ DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 def train_random_cnns_hyperparams(
     n_architectures=10,
     directory='data/cnn_hpo',
-    replace_if_existing=False,
     **random_cnn_kwargs,
 ):
 
@@ -59,40 +57,17 @@ def train_random_cnns_hyperparams(
             n_architectures=1,
             hpo_vec = hpo_vec,
             directory=directory,
-            replace_if_existing=replace_if_existing,
-            save=False,
+            replace_if_existing=False,
+            save=True,
             **random_cnn_kwargs
         )
         features.append(feats[0])
         accuracies.append(acc[0])
 
-    # save
-    save_dir = os.path.join(directory)
-    os.makedirs(save_dir, exist_ok=True)
-
-    if replace_if_existing:
-        features_path = os.path.join(save_dir, 'features.pt')
-        accuracies_path = os.path.join(save_dir, 'accuracies.pt')
-        if os.path.exists(features_path):
-            os.remove(features_path)
-        if os.path.exists(accuracies_path):
-            os.remove(accuracies_path)
-
-    else:
-        if os.path.exists(os.path.join(save_dir, 'features.pt')) and os.path.exists(os.path.join(save_dir, 'accuracies.pt')):
-            # load
-            features = torch.load(os.path.join(save_dir, 'features.pt')) + features
-            accuracies = torch.load(os.path.join(save_dir, 'accuracies.pt')) + accuracies
-
-    torch.save(features, os.path.join(save_dir, 'features.pt'))
-    torch.save(accuracies, os.path.join(save_dir, 'accuracies.pt'))
-
-    print('saved data', 'features shape:', len(features) , ',' , len(features[0]), 'accuracies shape:', len(accuracies))
-
 
 
 def train_random_cnns(
-    hpo_vec,
+    hpo_vec=[4, 0.01, 10, 0.9],
     n_architectures=10,
     num_workers=4,
     optimizer_type=None,
@@ -220,4 +195,31 @@ def train_random_cnns(
         node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
         features.append((node_feats, edge_indices, edge_feats, hpo_vec))
         accuracies.append(accuracy)
+
+
+    if save:
+        # save
+        save_dir = os.path.join(directory, 'cnn')
+        os.makedirs(save_dir, exist_ok=True)
+
+        if replace_if_existing:
+            features_path = os.path.join(save_dir, 'features.pt')
+            accuracies_path = os.path.join(save_dir, 'accuracies.pt')
+            if os.path.exists(features_path):
+                os.remove(features_path)
+            if os.path.exists(accuracies_path):
+                os.remove(accuracies_path)
+
+        else:
+            if os.path.exists(os.path.join(save_dir, 'features.pt')) and os.path.exists(os.path.join(save_dir, 'accuracies.pt')):
+                # load
+                features = torch.load(os.path.join(save_dir, 'features.pt')) + features
+                accuracies = torch.load(os.path.join(save_dir, 'accuracies.pt')) + accuracies
+
+        torch.save(features, os.path.join(save_dir, 'features.pt'))
+        torch.save(accuracies, os.path.join(save_dir, 'accuracies.pt'))
+
+        print('saved data', 'features shape:', len(features) , ',' , len(features[0]), 'accuracies shape:', len(accuracies))
+
+
     return features, accuracies

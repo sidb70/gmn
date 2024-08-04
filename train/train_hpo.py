@@ -9,6 +9,9 @@ from utils import split
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from models.models import HPOMPNN
 from preprocessing.data_loader import get_dataset
+from preprocessing.generate_data import generate_random_cnn
+from gmn_lim.model_arch_graph import seq_to_feats
+import time
 
 
 torch.manual_seed(0)
@@ -37,7 +40,7 @@ def train_epoch(model, feats, labels , batch_size, criterion, optimizer):
         # print("Labels: ", y)
 def eval_step(model, feats, labels, batch_size, criterion):
     model.eval()
-    for i in range(0, len([feats]), batch_size):
+    for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i+batch_size, len(feats))):
             node_feat, edge_index, edge_feat, hpo_vec = feats[j]
@@ -87,6 +90,7 @@ def train_hpo(args):
     # test
     print('\nTest step')
     eval_step(model, feats_test, labels_test, batch_size, criterion=criterion)
+
     return model
 
 
@@ -105,4 +109,4 @@ if __name__ == '__main__':
     args.add_argument('--epochs', type=int, default=100)
     args.add_argument('--lr', type=float, default=0.01)
     args = args.parse_args()
-    train_hpo(args)
+    model = train_hpo(args)
