@@ -111,12 +111,10 @@ class BaseMPNN(nn.Module):
         self.meta_layers = nn.ModuleList(
             [
                 MetaLayer(EdgeModel(edge_in_dim, hidden_dim),
-                          NodeModel(node_in_dim, hidden_dim)),
-                MetaLayer(EdgeModel(edge_in_dim, hidden_dim),
-                          NodeModel(node_in_dim, hidden_dim)),
-                MetaLayer(EdgeModel(edge_in_dim, hidden_dim),
-                          NodeModel(node_in_dim, hidden_dim)),
-            ])
+                          NodeModel(node_in_dim, hidden_dim))
+                for _ in range(3)
+            ]
+        )
         self.node_norm = nn.BatchNorm1d(hidden_dim)
         self.edge_norm = nn.BatchNorm1d(hidden_dim)
         self.regression = nn.Linear(2*hidden_dim, 1)
@@ -136,16 +134,28 @@ class BaseMPNN(nn.Module):
         meta_out = torch.cat([node_attr_readout, edge_attr_readout], dim=1)
         return self.regression(meta_out)
 
-
-if __name__ == '__main__':
-
-    edge_attr = torch.randn(6, 6)
-    edge_index = torch.tensor([[0, 1, 1, 4, 3, 4],
-                               [1, 1, 2, 1, 4, 3]])
-    x = torch.randn(5, 3)
-    u = None
-    batch = None
-    # base mpnn test
-    base_mpnn = BaseMPNN(node_feat_dim=3, edge_feat_dim=6,
-                         node_hidden_dim=10, edge_hidden_dim=10)
-    base_mpnn.forward(x, edge_index, edge_attr, u, batch)
+class HPOMPNN(BaseMPNN):
+    def __init__(self, hidden_dim, hpo_dim):
+        super().__init__(hidden_dim)
+        self.hpo_encoder = nn.Sequential(
+            nn.Linear(hpo_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim)
+        )
+        self.mlp = nn.Sequential(
+            nn.Linear(3*hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 1)
+        )
+    def forward(self, x, edge_index, edge_attr, hpo, u=None, batch=None):
+        x, edge_attr = self.encoder(x, edge_attr)
+        hpo = self.hpo_encoder(hpo)
+        for i, layer in enumerate(self.meta_layers):
+            x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
+            if i < len(self.meta_layers) - 1:
+                x = self.node_norm(x)
+                edge_attr = self.edge_norm(edge_attr)
+        node_attr_readout = torch.mean(x, dim=0).unsqueeze(0)
+        edge_attr_readout = torch.mean(edge_attr, dim=0).unsqueeze(0)
+        meta_out = torch.cat([node_attr_readout, edge_attr_readout, hpo], dim=1)
+        return self.mlp(meta_out)
