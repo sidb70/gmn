@@ -21,7 +21,7 @@ class TestGenerateData(unittest.TestCase):
         n_architectures = 2
 
         train_random_cnns(
-            n_architectures=n_architectures, train_size=100, batch_size=3, directory='data/test/cnn',
+            n_architectures=n_architectures, batch_size=3, directory='data/test/',
             replace_if_existing=True, log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4),
         )
 
