@@ -33,7 +33,7 @@ DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 def train_random_cnns_hyperparams(
     n_architectures=10,
     directory='data/cnn_hpo',
-    **random_cnn_kwargs,
+    replace_if_existing=True, 
 ):
 
     features = []
@@ -57,9 +57,8 @@ def train_random_cnns_hyperparams(
             n_architectures=1,
             hpo_vec = hpo_vec,
             directory=directory,
-            replace_if_existing=False,
+            replace_if_existing=replace_if_existing,
             save=True,
-            **random_cnn_kwargs
         )
         features.append(feats[0])
         accuracies.append(acc[0])
@@ -74,7 +73,6 @@ def train_random_cnns(
     directory='data/',
     replace_if_existing=False,
     save=True,
-    **random_cnn_kwargs
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data
@@ -148,7 +146,7 @@ def train_random_cnns(
     accuracies = []                 
 
     for i in range(n_architectures):
-        cnn = generate_random_cnn(**random_cnn_kwargs).to(DEVICE)
+        cnn = generate_random_cnn().to(DEVICE)
 
         criterion = nn.CrossEntropyLoss()
         if optimizer_type is None:
