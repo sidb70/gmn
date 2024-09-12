@@ -8,7 +8,7 @@ import torchvision
 import numpy as np
 from dataclasses import dataclass
 
-use_ffcv = False
+use_ffcv = True
 if use_ffcv:
     from .write_ffcv_data import cifar_10_to_beton
     from ffcv.loader import Loader, OrderOption
@@ -49,7 +49,7 @@ class Hyperparameters:
 def train_random_cnns_hyperparams(
     n_architectures=10,
     directory='data/cnn_hpo',
-    **random_cnn_kwargs,
+    replace_if_existing=True, 
 ):
     """
     Generates and trains random CNNs, using random hyperparameters
@@ -61,7 +61,7 @@ def train_random_cnns_hyperparams(
     for i in range(n_architectures):
         batch_size = np.random.randint(2, 1024)
         lr = np.random.uniform(0.0001, 0.1)
-        n_epochs = np.random.randint(1, 10)
+        n_epochs = np.random.randint(50, 150)
         momentum = np.random.uniform(0.1, 0.9)
         hyperparams = Hyperparameters(batch_size, lr, n_epochs, momentum)
 
@@ -75,9 +75,8 @@ def train_random_cnns_hyperparams(
             n_architectures=1,
             hyperparams=hyperparams,
             directory=directory,
-            replace_if_existing=False,
+            replace_if_existing=replace_if_existing,
             save=True,
-            **random_cnn_kwargs
         )
         features.append(feats[0])
         accuracies.append(acc[0])
