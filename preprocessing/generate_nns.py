@@ -1,27 +1,32 @@
 from typing import Tuple
 import torch
 import torch.nn as nn
-
+from dataclasses import dataclass
 
 class Flatten(nn.Module):
     def forward(self, x): return x.view(x.shape[0], -1)
 
 
-def generate_random_cnn(
-    in_channels: int = 3,
-    in_dim: int = 32,
-    n_classes: int = 10,
-    n_conv_layers_range: Tuple[int, int] = (2, 4),
-    n_fc_layers_range: Tuple[int, int] = (2, 4),
-    log_hidden_channels_range: Tuple[int, int] = (4, 8),
-    log_hidden_fc_units_range: Tuple[int, int] = (4, 8),
+@dataclass
+class RandCNNConfig:
+    in_channels: int = 3
+    in_dim: int = 32
+    n_classes: int = 10
+    n_conv_layers_range: Tuple[int, int] = (2, 4)
+    n_fc_layers_range: Tuple[int, int] = (2, 4)
+    log_hidden_channels_range: Tuple[int, int] = (4, 8)
+    log_hidden_fc_units_range: Tuple[int, int] = (4, 8)
     use_max_pool: bool = True
+
+def generate_random_cnn(
+    config=RandCNNConfig()
 ) -> nn.Sequential:
     """
     Generates a CNN classifier with varying convolutional and linear layers, as 
     well as varying hidden units in each layer. Assumes input and kernels are 2d and square.
 
     Args:
+    config: GenerateCNNConfig. Contains the following attributes:
     - in_channels: 
         int, the number of channels in the input image
     - in_dim:
@@ -38,6 +43,15 @@ def generate_random_cnn(
     Returns:
     - model: nn.Sequential, the randomly generated CNN model
     """
+
+    in_channels = config.in_channels
+    in_dim = config.in_dim
+    n_classes = config.n_classes
+    n_conv_layers_range = config.n_conv_layers_range
+    n_fc_layers_range = config.n_fc_layers_range
+    log_hidden_channels_range = config.log_hidden_channels_range
+    log_hidden_fc_units_range = config.log_hidden_fc_units_range
+    use_max_pool = config.use_max_pool
 
     layers = []  # list of nn.Module
 
@@ -106,7 +120,15 @@ def generate_random_cnn(
     return nn.Sequential(*layers)
 
 
-def generate_random_mlp(in_dim=32, out_dim=10, n_layers_range=(2, 4), log_hidden_units_range=(4, 8)):
+@dataclass
+class RandMLPConfig:
+    in_dim: int = 32
+    out_dim: int = 10
+    n_layers_range: Tuple[int, int] = (2, 4)
+    log_hidden_units_range: Tuple[int, int] = (4, 8)
+
+
+def generate_random_mlp(config=RandMLPConfig()) -> nn.Sequential:
     """
     Generates an MLP with varying linear layers and varying hidden units in each layer.
 
@@ -121,6 +143,11 @@ def generate_random_mlp(in_dim=32, out_dim=10, n_layers_range=(2, 4), log_hidden
     Returns:
     - model: nn.Sequential, the randomly generated MLP model
     """
+
+    in_dim = config.in_dim
+    out_dim = config.out_dim
+    n_layers_range = config.n_layers_range
+    log_hidden_units_range = config.log_hidden_units_range
 
     layers = []  # list of tuples (layer: nn.Module, out_shape: torch.Size)
 

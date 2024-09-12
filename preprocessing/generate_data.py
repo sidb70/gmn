@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch import optim
 import torchvision
 import numpy as np
+from dataclasses import dataclass
 
 use_ffcv = False
 if use_ffcv:
@@ -24,10 +25,25 @@ else:
 from typing import List
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from preprocessing.generate_nns import generate_random_cnn
-
+from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+@dataclass
+class Hyperparameters:
+    """
+    Dataclass for hyperparameters to use for training CNNs.
+    """
+    batch_size: int = 3
+    lr: float = 0.01
+    n_epochs: int = 1
+    momentum: float = 0.5
+
+    def to_vec(self):
+        return [self.batch_size, self.lr, self.n_epochs, self.momentum]
+    
+    def __str__(self):
+        return f"batch_size: {self.batch_size}, lr: {self.lr}, n_epochs: {self.n_epochs}, momentum: {self.momentum}"
 
 
 def train_random_cnns_hyperparams(
@@ -35,6 +51,9 @@ def train_random_cnns_hyperparams(
     directory='data/cnn_hpo',
     **random_cnn_kwargs,
 ):
+    """
+    Generates and trains random CNNs, using random hyperparameters
+    """
 
     features = []
     accuracies = []
@@ -44,8 +63,7 @@ def train_random_cnns_hyperparams(
         lr = np.random.uniform(0.0001, 0.1)
         n_epochs = np.random.randint(1, 10)
         momentum = np.random.uniform(0.1, 0.9)
-        hpo_vec = [batch_size, lr, n_epochs, momentum]
-        #hpo_vec = []
+        hyperparams = Hyperparameters(batch_size, lr, n_epochs, momentum)
 
         print("training random cnn with hyperparameters:")
         print(f"batch_size: {batch_size}")
@@ -55,7 +73,7 @@ def train_random_cnns_hyperparams(
 
         feats, acc = train_random_cnns(
             n_architectures=1,
-            hpo_vec = hpo_vec,
+            hyperparams=hyperparams,
             directory=directory,
             replace_if_existing=False,
             save=True,
@@ -67,31 +85,40 @@ def train_random_cnns_hyperparams(
 
 
 def train_random_cnns(
-    hpo_vec=[4, 0.01, 10, 0.9],
+    hyperparams=Hyperparameters(),
+    random_cnn_config=RandCNNConfig(),
     n_architectures=10,
     num_workers=4,
     optimizer_type=None,
-    directory='data/',
-    replace_if_existing=False,
+    data_dir='data',
+    results_dir='data/cnn',
     save=True,
-    **random_cnn_kwargs
+    replace_if_existing=False,
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data
+    Saves the resulting CNN node and edge features and their accuracies in directory
 
     Args:
+    - hyperparams: Hyperparameters, the hyperparameters to use for training
+    - random_cnn_config: RandomCNNConfig, the configuration for generating random CNNs
     - n_architectures: int, the number of architectures to generate
-    - n_epochs: int, the number of epochs to train each architecture
-    - random_cnn_kwargs: see generate_random_cnn
+    - optimizer_type: torch.optim.Optimizer, the optimizer to use. If None, uses SGD
+    - data_dir: str, the directory in which the CIFAR10 data is stored
+    - results_dir: str, the directory in which to save the CNN features and their accuracies
+    - save: bool, whether to save the results to results_dir
+    - replace_if_existing: bool, whether to replace the existing results if they exist or append to them
 
     Saves these files to the specified directory:
-    - features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
-    - accuracies.pt: list of accuracies for each model. 
+    - {results_dir}/features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
+    - {results_dir}/accuracies.pt: list of accuracies for each model.
     """
 
-    torch.manual_seed(0)
-    cifar_10_dir = os.path.join(directory, 'cifar10')
+    hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
+
+    cifar_10_dir = os.path.join(data_dir, 'cifar10')
+
     if use_ffcv:
         if not os.path.exists(os.path.join(cifar_10_dir, 'cifar_train.beton')):
             cifar_10_to_beton(cifar_10_dir)
@@ -114,7 +141,7 @@ def train_random_cnns(
             ])
 
             # Create loaders
-            loaders[name] = Loader(os.path.join(directory,'cifar10', f'cifar_{name}.beton'),
+            loaders[name] = Loader(os.path.join(cifar_10_dir,'cifar10', f'cifar_{name}.beton'),
                                     batch_size=batch_size,
                                     num_workers=num_workers,
                                     order=OrderOption.RANDOM,
@@ -144,16 +171,15 @@ def train_random_cnns(
         testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
 
 
-    features = []                   
-    accuracies = []                 
+    features = []
+    accuracies = []
 
     for i in range(n_architectures):
-        cnn = generate_random_cnn(**random_cnn_kwargs).to(DEVICE)
+        cnn = generate_random_cnn(random_cnn_config).to(DEVICE)
 
         criterion = nn.CrossEntropyLoss()
         if optimizer_type is None:
             optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
-
         else:
             optimizer = optimizer_type(cnn.parameters(), lr=lr, momentum=momentum)
 
@@ -171,9 +197,8 @@ def train_random_cnns(
                 running_loss += loss.item()
                 loss.backward()
                 optimizer.step()
-
                 
-                if k % 1 == 0:
+                if k % 20 == 0:
                     print(f'\rTraining model {i+1}/{n_architectures}, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}', end='')
                     running_loss = 0.0
 
@@ -198,28 +223,24 @@ def train_random_cnns(
 
 
     if save:
-        # save
-        save_dir = os.path.join(directory, 'cnn')
-        os.makedirs(save_dir, exist_ok=True)
+        os.makedirs(results_dir, exist_ok=True)
 
         if replace_if_existing:
-            features_path = os.path.join(save_dir, 'features.pt')
-            accuracies_path = os.path.join(save_dir, 'accuracies.pt')
+            # if feats and accuracies already exist, delete them and save the new data.
+            features_path = os.path.join(results_dir, 'features.pt')
+            accuracies_path = os.path.join(results_dir, 'accuracies.pt')
             if os.path.exists(features_path):
                 os.remove(features_path)
             if os.path.exists(accuracies_path):
                 os.remove(accuracies_path)
 
         else:
-            if os.path.exists(os.path.join(save_dir, 'features.pt')) and os.path.exists(os.path.join(save_dir, 'accuracies.pt')):
-                # load
-                features = torch.load(os.path.join(save_dir, 'features.pt')) + features
-                accuracies = torch.load(os.path.join(save_dir, 'accuracies.pt')) + accuracies
+            # if feats and accuracies both exist, then append them to the current features and accuracies
+            if os.path.exists(os.path.join(results_dir, 'features.pt')) and os.path.exists(os.path.join(results_dir, 'accuracies.pt')):
+                features = torch.load(os.path.join(results_dir, 'features.pt')) + features
+                accuracies = torch.load(os.path.join(results_dir, 'accuracies.pt')) + accuracies
 
-        torch.save(features, os.path.join(save_dir, 'features.pt'))
-        torch.save(accuracies, os.path.join(save_dir, 'accuracies.pt'))
-
-        print('saved data', 'features shape:', len(features) , ',' , len(features[0]), 'accuracies shape:', len(accuracies))
-
+        torch.save(features, os.path.join(results_dir, 'features.pt'))
+        torch.save(accuracies, os.path.join(results_dir, 'accuracies.pt'))
 
     return features, accuracies

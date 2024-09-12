@@ -6,8 +6,8 @@ from pprint import pprint
 import torch
 import torch.nn as nn
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from param_graph.gmn_lim.model_arch_graph import seq_to_feats
-from preprocessing.generate_nns import generate_random_cnn
+from gmn_lim.model_arch_graph import seq_to_feats
+from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
 
 class TestSeqToNet(unittest.TestCase):
@@ -80,15 +80,15 @@ class TestSeqToNet(unittest.TestCase):
 
     torch.manual_seed(0)
 
-    for i in range(10):
+    for _ in range(10):
       cnn = generate_random_cnn(
-        log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4),
+        RandCNNConfig(log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4))
       )
 
       node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
 
-      self.assertEqual(node_feats.shape[1], 3)
-      self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
+      self.assertEqual(node_feats.shape[1], 3) # 3 features per node
+      self.assertEqual(edge_indices.shape[1], edge_feats.shape[0]) # same number of edge indices and edge features
 
 
 
