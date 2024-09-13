@@ -1,25 +1,12 @@
 from typing import Tuple
 import torch
 import torch.nn as nn
-from dataclasses import dataclass
+from .hpo_configs import RandCNNConfig
 
 
 class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.shape[0], -1)
-
-
-@dataclass
-class RandCNNConfig:
-    in_channels: int = 3
-    in_dim: int = 32
-    n_classes: int = 10
-    kernel_size: int = 3
-    n_conv_layers_range: Tuple[int, int] = (2, 4)
-    n_fc_layers_range: Tuple[int, int] = (2, 4)
-    log_hidden_channels_range: Tuple[int, int] = (4, 8)
-    log_hidden_fc_units_range: Tuple[int, int] = (4, 8)
-    use_avg_pool: bool = True
 
 
 def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
