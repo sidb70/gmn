@@ -81,7 +81,7 @@ def train_random_cnns_hyperparams(
     save_dir,
     n_architectures=10,
     random_cnn_config=RandCNNConfig(),
-    random_hyperparam_config=RandHyperparamsConfig(),
+    random_hyperparams_config=RandHyperparamsConfig(),
 ):
     """
     Generates and trains random CNNs, using random hyperparameters.
@@ -90,11 +90,11 @@ def train_random_cnns_hyperparams(
     features = []
     accuracies = []
 
-    hyperparams = random_hyperparam_config.sample()
+    hyperparams = random_hyperparams_config.sample()
 
     for _ in range(n_architectures):
 
-        hyperparams = random_hyperparam_config.sample()
+        hyperparams = random_hyperparams_config.sample()
 
         print(f"Training cifar10 cnn with hyperparameters {hyperparams}")
 

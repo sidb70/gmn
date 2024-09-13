@@ -8,3 +8,4 @@ torchvision==0.18.1
 pydantic==2.8.2
 # opencv-python-headless
 # ffcv==1.0.2
+black==24.8.0
