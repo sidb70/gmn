@@ -1,10 +1,16 @@
-import torch
-import unittest
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from preprocessing.generate_nns import generate_random_cnn, generate_random_mlp, RandCNNConfig, RandMLPConfig
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+import torch
+import unittest
+from preprocessing.generate_nns import (
+    generate_random_cnn,
+    RandCNNConfig,
+    generate_random_mlp,
+    RandMLPConfig,
+)
 
 
 class TestGenerateNNs(unittest.TestCase):
@@ -19,7 +25,9 @@ class TestGenerateNNs(unittest.TestCase):
         self.assertEqual(output.shape, torch.Size([1000, 10]))
 
         cnn = generate_random_cnn(
-            RandCNNConfig(in_dim=64, in_channels=13, n_classes=8, n_conv_layers_range=(10, 20))
+            RandCNNConfig(
+                in_dim=64, in_channels=13, n_classes=8, n_conv_layers_range=(10, 20)
+            )
         )
         sample_input = torch.randn(10, 13, 64, 64)
         output = cnn(sample_input)
@@ -35,5 +43,5 @@ class TestGenerateNNs(unittest.TestCase):
         self.assertEqual(output.shape, torch.Size([1000, 10]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

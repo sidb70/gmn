@@ -17,7 +17,7 @@ def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
         nn.Flatten(),
         nn.Linear(6, 4),
         nn.ReLU(),
-        nn.Linear(4, 1)
+        nn.Linear(4, 1),
     )
     param_graph_1 = seq_to_net(nn1)
     nn2 = nn.Sequential(
@@ -29,7 +29,7 @@ def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
         nn.Flatten(),
         nn.Linear(6, 4),
         nn.ReLU(),
-        nn.Linear(4, 1)
+        nn.Linear(4, 1),
     )
     param_graph_2 = seq_to_net(nn2)
 
@@ -42,7 +42,7 @@ def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
         nn.Flatten(),
         nn.Linear(18, 8),
         nn.ReLU(),
-        nn.Linear(8, 1)
+        nn.Linear(8, 1),
     )
     param_graph_3 = seq_to_net(nn3)
     node_feats1, edge_indices1, edge_feats1 = param_graph_1.get_feature_tensors()
@@ -52,22 +52,18 @@ def get_dataset(feats_path: str, labels_path: str) -> torch.Tensor:
     node_feats = [node_feats1, node_feats2, node_feats3]
     edge_indices = [edge_indices1, edge_indices2, edge_indices3]
     edge_feats = [edge_feats1, edge_feats2, edge_feats3]
-    labels = [.89, .93, .95]
+    labels = [0.89, 0.93, 0.95]
     return node_feats, edge_indices, edge_feats, labels
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = ArgumentParser()
-    args.add_argument('--feats_path', type=str,
-                      default='gmn_data/cnn_features.pt')
-    args.add_argument('--labels_path', type=str,
-                      default='gmn_data/cnn_accuracies.pt')
+    args.add_argument("--feats_path", type=str, default="gmn_data/cnn_features.pt")
+    args.add_argument("--labels_path", type=str, default="gmn_data/cnn_accuracies.pt")
     args = args.parse_args()
     node_feats, edge_indices, edge_feats, labels = get_dataset(
-        args.feats_path, args.labels_path)
-    print("node_feats: ", len(node_feats),
-          ' elem 0 shape', node_feats[0].shape)
-    print("edge_indices: ", len(edge_indices),
-          ' elem 0 shape', edge_indices[0].shape)
-    print("edge_feats: ", len(edge_feats),
-          ' elem 0 shape', edge_feats[0].shape)
+        args.feats_path, args.labels_path
+    )
+    print("node_feats: ", len(node_feats), " elem 0 shape", node_feats[0].shape)
+    print("edge_indices: ", len(edge_indices), " elem 0 shape", edge_indices[0].shape)
+    print("edge_feats: ", len(edge_feats), " elem 0 shape", edge_feats[0].shape)

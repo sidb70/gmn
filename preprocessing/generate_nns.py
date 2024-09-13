@@ -3,8 +3,10 @@ import torch
 import torch.nn as nn
 from dataclasses import dataclass
 
+
 class Flatten(nn.Module):
-    def forward(self, x): return x.view(x.shape[0], -1)
+    def forward(self, x):
+        return x.view(x.shape[0], -1)
 
 
 @dataclass
@@ -12,32 +14,32 @@ class RandCNNConfig:
     in_channels: int = 3
     in_dim: int = 32
     n_classes: int = 10
+    kernel_size: int = 3
     n_conv_layers_range: Tuple[int, int] = (2, 4)
     n_fc_layers_range: Tuple[int, int] = (2, 4)
     log_hidden_channels_range: Tuple[int, int] = (4, 8)
     log_hidden_fc_units_range: Tuple[int, int] = (4, 8)
-    use_max_pool: bool = True
+    use_avg_pool: bool = True
 
-def generate_random_cnn(
-    config=RandCNNConfig()
-) -> nn.Sequential:
+
+def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
     """
-    Generates a CNN classifier with varying convolutional and linear layers, as 
+    Generates a CNN classifier with varying convolutional and linear layers, as
     well as varying hidden units in each layer. Assumes input and kernels are 2d and square.
 
     Args:
     config: GenerateCNNConfig. Contains the following attributes:
-    - in_channels: 
+    - in_channels:
         int, the number of channels in the input image
     - in_dim:
         int, the dimension of the input image (assuming square)
-    - n_classes: 
+    - n_classes:
         int, the number of classes
     - n_conv_layers_range and n_fc_layers_range:
-        tuple, number of conv layers and fc layers are uniformly distributed with these 
+        tuple, number of conv layers and fc layers are uniformly distributed with these
         ranges
     - log_hidden_channels_range and log_hidden_fc_units_range:
-        tuple, the number of hidden channels after each conv layer or fc layer 
+        tuple, the number of hidden channels after each conv layer or fc layer
         is 2**x, where x is uniformly distributed in this range
 
     Returns:
@@ -47,11 +49,12 @@ def generate_random_cnn(
     in_channels = config.in_channels
     in_dim = config.in_dim
     n_classes = config.n_classes
+    kernel_size = config.kernel_size
     n_conv_layers_range = config.n_conv_layers_range
     n_fc_layers_range = config.n_fc_layers_range
     log_hidden_channels_range = config.log_hidden_channels_range
     log_hidden_fc_units_range = config.log_hidden_fc_units_range
-    use_max_pool = config.use_max_pool
+    use_avg_pool = config.use_avg_pool
 
     layers = []  # list of nn.Module
 
@@ -68,24 +71,23 @@ def generate_random_cnn(
             in_channels = out_channels
 
         # For each conv layer, randomly determine the number of hidden channels
-        out_channels = 2**torch.randint(*
-                                        log_hidden_channels_range, (1,)).item()
-        kernel_size = 3
+        out_channels = 2 ** torch.randint(*log_hidden_channels_range, (1,)).item()
         padding = 0
 
         # calculate the output shape of the conv layer
-        conv_out_dim = in_dim - kernel_size + 1 + 2*padding
+        conv_out_dim = in_dim - kernel_size + 1 + 2 * padding
 
         # add the conv layer, batch norm and activation
-        layers.append(nn.Conv2d(in_channels, out_channels,
-                      kernel_size, padding=padding))
+        layers.append(
+            nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)
+        )
         layers.append(nn.BatchNorm2d(out_channels))
         layers.append(nn.ReLU())
 
         conv_layer_number += 1
 
     # 2: conv to linear layers transition
-    if use_max_pool:
+    if use_avg_pool:
         # replace last two dimensions with 1 because we apply global pooling
         layers.append(nn.AdaptiveAvgPool2d((1, 1)))
         flatten_out_shape = out_channels
@@ -105,8 +107,7 @@ def generate_random_cnn(
 
         if linear_layer_number < n_fc_layers - 1:
             # for all layers except the last, randomly determine the number of hidden units
-            fc_out_dim = 2**torch.randint(*
-                                          log_hidden_fc_units_range, (1,)).item()
+            fc_out_dim = 2 ** torch.randint(*log_hidden_fc_units_range, (1,)).item()
         else:
             fc_out_dim = n_classes
 
@@ -133,7 +134,7 @@ def generate_random_mlp(config=RandMLPConfig()) -> nn.Sequential:
     Generates an MLP with varying linear layers and varying hidden units in each layer.
 
     Args:
-    - in_dim: 
+    - in_dim:
         int, the input dimension
     - out_dim:
         int, the output dimension
@@ -160,14 +161,12 @@ def generate_random_mlp(config=RandMLPConfig()) -> nn.Sequential:
 
         if linear_layer_number < n_layers - 1:
             # for all layers except the last, randomly determine the number of hidden units
-            layer_out_dim = 2**torch.randint(*
-                                             log_hidden_units_range, (1,)).item()
+            layer_out_dim = 2 ** torch.randint(*log_hidden_units_range, (1,)).item()
         else:
             layer_out_dim = out_dim
 
         # add the linear layer and activation
-        layers.append([nn.Linear(in_dim, layer_out_dim),
-                      torch.Size([layer_out_dim])])
+        layers.append([nn.Linear(in_dim, layer_out_dim), torch.Size([layer_out_dim])])
         layers.append([nn.ReLU(), torch.Size([layer_out_dim])])
         linear_layer_number += 1
 

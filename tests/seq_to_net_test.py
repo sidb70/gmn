@@ -2,95 +2,97 @@ import unittest
 import os
 import sys
 from pprint import pprint
-    
+
 import torch
 import torch.nn as nn
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
 
 class TestSeqToNet(unittest.TestCase):
 
-  def test_mlp_to_net(self):
+    def test_mlp_to_net(self):
 
-    seq = nn.Sequential(
-        nn.Linear(3, 4),
-        nn.ReLU(),
-        nn.BatchNorm1d(4),
-        nn.Linear(4, 6),
-        nn.ReLU(),
-        nn.Linear(6, 1)
-    )
+        seq = nn.Sequential(
+            nn.Linear(3, 4),
+            nn.ReLU(),
+            nn.BatchNorm1d(4),
+            nn.Linear(4, 6),
+            nn.ReLU(),
+            nn.Linear(6, 1),
+        )
 
-    node_feats, edge_indices, edge_feats = seq_to_feats(seq)
+        node_feats, edge_indices, edge_feats = seq_to_feats(seq)
 
-    self.assertEqual(node_feats.shape[1], 3)
-    self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
+        self.assertEqual(node_feats.shape[1], 3)
+        self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
 
-    
-  def test_cnn_to_net_1(self):
-    """
-    CNN with avgpool
-    """
+    def test_cnn_to_net_1(self):
+        """
+        CNN with avgpool
+        """
 
-    neq = nn.Sequential(
-        nn.Conv2d(3, 4, 5),
-        nn.ReLU(),
-        nn.Conv2d(4, 6, 5),
-        nn.BatchNorm2d(6),
-        nn.AdaptiveAvgPool2d((1, 1)),
-        nn.Flatten(),
-        nn.Linear(6, 4),
-        nn.ReLU(),
-        nn.Linear(4, 1)
-    )
+        neq = nn.Sequential(
+            nn.Conv2d(3, 4, 5),
+            nn.ReLU(),
+            nn.Conv2d(4, 6, 5),
+            nn.BatchNorm2d(6),
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(),
+            nn.Linear(6, 4),
+            nn.ReLU(),
+            nn.Linear(4, 1),
+        )
 
-    node_feats, edge_indices, edge_feats = seq_to_feats(neq)
+        node_feats, edge_indices, edge_feats = seq_to_feats(neq)
 
-    self.assertEqual(node_feats.shape[1], 3)
-    self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
+        self.assertEqual(node_feats.shape[1], 3)
+        self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
 
-  def test_cnn_to_net_2(self):
-    """
-    CNN without avgpool
-    """
+    def test_cnn_to_net_2(self):
+        """
+        CNN without avgpool
+        """
 
-    neq = nn.Sequential(
-        nn.Conv2d(3, 8, 3),
-        nn.ReLU(),
-        nn.Conv2d(8, 8, 3),
-        nn.ReLU(),
-        nn.Flatten(),
-        nn.Linear(8, 4),
-        nn.ReLU(),
-        nn.Linear(4, 8),
-        nn.ReLU(),
-        nn.Linear(8, 10),
-        nn.ReLU()
-    )
+        neq = nn.Sequential(
+            nn.Conv2d(3, 8, 3),
+            nn.ReLU(),
+            nn.Conv2d(8, 8, 3),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(8, 4),
+            nn.ReLU(),
+            nn.Linear(4, 8),
+            nn.ReLU(),
+            nn.Linear(8, 10),
+            nn.ReLU(),
+        )
 
-    node_feats, edge_indices, edge_feats = seq_to_feats(neq)
+        node_feats, edge_indices, edge_feats = seq_to_feats(neq)
 
-    self.assertEqual(node_feats.shape[1], 3)
-    self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
+        self.assertEqual(node_feats.shape[1], 3)
+        self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
+
+    def test_random_cnns_to_net(self):
+
+        torch.manual_seed(0)
+
+        for _ in range(10):
+            cnn = generate_random_cnn(
+                RandCNNConfig(
+                    log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4)
+                )
+            )
+
+            node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
+
+            self.assertEqual(node_feats.shape[1], 3)  # 3 features per node
+            self.assertEqual(
+                edge_indices.shape[1], edge_feats.shape[0]
+            )  # same number of edge indices and edge features
 
 
-  def test_random_cnns_to_net(self):
-
-    torch.manual_seed(0)
-
-    for _ in range(10):
-      cnn = generate_random_cnn(
-        RandCNNConfig(log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4))
-      )
-
-      node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
-
-      self.assertEqual(node_feats.shape[1], 3) # 3 features per node
-      self.assertEqual(edge_indices.shape[1], edge_feats.shape[0]) # same number of edge indices and edge features
-
-
-
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()
