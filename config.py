@@ -1,2 +1,2 @@
-use_ffcv=False
+use_ffcv=True
 cifar10_train_size=5000
