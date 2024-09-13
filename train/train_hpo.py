@@ -38,8 +38,11 @@ def train_epoch(model, feats, labels , batch_size, criterion, optimizer):
         optimizer.step()
         # print("Predictions: ", outs)
         # print("Labels: ", y)
-def eval_step(model, feats, labels, batch_size, criterion):
+def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
     model.eval()
+    # freeze model
+    for param in model.parameters():
+        param.requires_grad = False
     for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i+batch_size, len(feats))):
@@ -48,15 +51,27 @@ def eval_step(model, feats, labels, batch_size, criterion):
                                                         torch.tensor(edge_index).to(DEVICE),\
                                                         torch.tensor(edge_feat,dtype=torch.float32).to(DEVICE),\
                                                         torch.tensor(hpo_vec).to(DEVICE)
-        
+            # enable grad for hpo_vec
+            hpo_vec.requires_grad = True
+            for _ in range(hpo_grad_steps):
+                out = model(node_feat, edge_index, edge_feat, hpo_vec)
+                loss = criterion(out, torch.tensor(labels[j]).to(DEVICE))
+                loss.backward()
+                hpo_vec.data = hpo_vec.data - 0.01 * hpo_vec.grad
+                hpo_vec.grad.zero_()
             out = model(node_feat, edge_index, edge_feat, hpo_vec)
             outs.append(out)
+            
     outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
     y = torch.tensor(labels[i:i+batch_size]).to(DEVICE)
     loss = criterion(outs, y)
     print("Loss: ", loss)
     print("Predictions: ", outs)
     print("Labels: ", y)
+
+    # unfreeze model
+    for param in model.parameters():
+        param.requires_grad = True
 
 
 def train_hpo(args):

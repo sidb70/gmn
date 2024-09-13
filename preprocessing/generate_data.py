@@ -228,7 +228,6 @@ def train_cnns_cfira10(
             optimizer = optimizer_type(cnn.parameters(), lr=lr, momentum=momentum)
 
         for j in range(n_epochs):
-
             running_loss = 0.0
             for k, data in enumerate(trainloader, 0):
                 inputs, labels = data
@@ -237,7 +236,14 @@ def train_cnns_cfira10(
 
                 outputs = cnn(inputs).reshape(-1, 10)
                 labels = labels.reshape(-1)
-                loss = criterion(outputs, labels)
+                assert labels.shape[0] > 0
+                assert torch.min(labels) >= 0 
+                assert torch.max(labels) < 10
+                try:
+                    loss = criterion(outputs, labels)
+                except Exception as e:
+                    print(outputs, labels)
+                    raise e
                 running_loss += loss.item()
                 loss.backward()
                 optimizer.step()
