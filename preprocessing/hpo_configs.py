@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 import numpy as np
 
 @dataclass
@@ -27,11 +27,10 @@ class RandHyperparamsConfig:
     """
 
     # default values for the hyperparameters
-
-    batch_size_range: List[int] = field(default_factory=lambda: [2, 1024])
-    lr_range: List[float] = field(default_factory=lambda: [0.0001, 0.1])
-    n_epochs_range: List[int] = field(default_factory=lambda: [1, 10])
-    momentum_range: List[float] = field(default_factory=lambda: [0.1, 0.9])
+    batch_size_range: Tuple[int, int] = (2, 1024)
+    lr_range: Tuple[float, float] = (0.0001, 0.1)
+    n_epochs_range: Tuple[int, int] = (1, 10)
+    momentum_range: Tuple[float, float] = (0.1, 0.9)
 
     def sample(self) -> Hyperparameters:
         """
