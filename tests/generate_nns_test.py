@@ -26,7 +26,8 @@ class TestGenerateNNs(unittest.TestCase):
 
         cnn = generate_random_cnn(
             RandCNNConfig(
-                in_dim=64, in_channels=13, n_classes=8, n_conv_layers_range=(10, 20)
+                in_dim=64, in_channels=13, n_classes=8, n_conv_layers_range=(10, 20),
+                use_avg_pool_prob=False
             )
         )
         sample_input = torch.randn(10, 13, 64, 64)

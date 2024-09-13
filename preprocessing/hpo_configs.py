@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import Tuple
 import numpy as np
+
 
 @dataclass
 class Hyperparameters:
@@ -27,9 +28,9 @@ class RandHyperparamsConfig:
     """
 
     # default values for the hyperparameters
-    batch_size_range: Tuple[int, int] = (2, 1024)
+    log_batch_size_range: Tuple[int, int] = (1, 10)
     lr_range: Tuple[float, float] = (0.0001, 0.1)
-    n_epochs_range: Tuple[int, int] = (1, 10)
+    n_epochs_range: Tuple[int, int] = (50, 150)
     momentum_range: Tuple[float, float] = (0.1, 0.9)
 
     def sample(self) -> Hyperparameters:
@@ -37,21 +38,29 @@ class RandHyperparamsConfig:
         Samples n hyperparameters from the configuration.
         """
         return Hyperparameters(
-            batch_size=np.random.randint(*self.batch_size_range),
+            batch_size=np.random.randint(*self.log_batch_size_range),
             lr=np.random.uniform(*self.lr_range),
             n_epochs=np.random.randint(*self.n_epochs_range),
             momentum=np.random.uniform(*self.momentum_range),
         )
-        
+
 
 @dataclass
 class RandCNNConfig:
     in_channels: int = 3
-    in_dim: int = 32
+    in_dim: int = 32 # the dimension of the input image (assuming square)
     n_classes: int = 10
     kernel_size: int = 3
     n_conv_layers_range: Tuple[int, int] = (2, 4)
     n_fc_layers_range: Tuple[int, int] = (2, 4)
-    log_hidden_channels_range: Tuple[int, int] = (4, 8)
-    log_hidden_fc_units_range: Tuple[int, int] = (4, 8)
-    use_avg_pool: bool = True
+    log_hidden_channels_range: Tuple[int, int] = (4, 8) # n hidden channels = 2^sampled value
+    log_hidden_fc_units_range: Tuple[int, int] = (4, 8) # n hidden fc units = 2^sampled value
+    use_avg_pool_prob: float = 1.0
+
+
+@dataclass
+class RandMLPConfig:
+    in_dim: int = 32
+    out_dim: int = 10
+    n_layers_range: Tuple[int, int] = (2, 4)
+    log_hidden_units_range: Tuple[int, int] = (4, 8) # n hidden units = 2^sampled value

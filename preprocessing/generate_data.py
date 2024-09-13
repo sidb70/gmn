@@ -52,8 +52,6 @@ def train_random_cnns_hyperparams(
 
         hyperparams = random_hyperparams_config.sample()
 
-        print(f"Training cifar10 cnn with hyperparameters {hyperparams}")
-
         feats, acc = train_cnns_cfira10(
             hyperparams=hyperparams,
             random_cnn_config=random_cnn_config,
@@ -95,6 +93,8 @@ def train_cnns_cfira10(
     - {results_dir}/features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
     - {results_dir}/accuracies.pt: list of accuracies for each model.
     """
+
+    print(f"Training {n_architectures} cnn(s) with hyperparameters {hyperparams}")
 
     hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
@@ -172,16 +172,11 @@ def train_cnns_cfira10(
 
     for i in range(n_architectures):
 
-
-
         cnn = generate_random_cnn(random_cnn_config).to(DEVICE)
         n_params = sum(p.numel() for p in cnn.parameters())
 
         criterion = nn.CrossEntropyLoss()
-        if optimizer_type is None:
-            optimizer = optim.SGD(cnn.parameters(), lr=lr, momentum=momentum)
-        else:
-            optimizer = optimizer_type(cnn.parameters(), lr=lr, momentum=momentum)
+        optimizer = optim.AdamW(cnn.parameters(), lr=lr)
 
         for j in range(n_epochs):
             running_loss = 0.0

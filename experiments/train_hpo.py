@@ -10,6 +10,7 @@ from preprocessing.generate_nns import RandCNNConfig
 # from train.utils import split
 from models.models import HPOMPNN
 import numpy as np
+import sklearn
 from sklearn.model_selection import train_test_split
 
 
@@ -91,7 +92,7 @@ if __name__ == "__main__":
             n_fc_layers_range=(2, 3),
             log_hidden_channels_range=(6, 7),
             log_hidden_fc_units_range=(6, 7),
-            use_avg_pool=True,
+            use_avg_pool_prob=True,
         )
 
         n_architectures = 15
@@ -106,7 +107,6 @@ if __name__ == "__main__":
     # list of tuples (node_feats, edge_indices, edge_feats, hpo_vec)
     accuracies = torch.load(os.path.join(results_dir, "accuracies.pt"))
     # list of accuracies
-
 
     print(type(features[0][0]))
     print(len(features[0]))
