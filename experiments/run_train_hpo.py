@@ -44,26 +44,6 @@ if __name__ == "__main__":
 
     if generate_new_data:
         shutil.rmtree(results_dir)
-        os.makedirs(results_dir, exist_ok=True)
-
-        n_architectures = 15
-
-        train_random_cnns_hyperparams(
-            "data/hpo",
-            random_cnn_config=RandCNNConfig(
-                n_classes=10,
-                n_conv_layers_range=(2, 3),
-                n_fc_layers_range=(2, 3),
-                log_hidden_channels_range=(6, 7),
-                log_hidden_fc_units_range=(6, 7),
-                use_avg_pool_prob=True,
-            ),
-            random_hyperparams_config=RandHyperparamsConfig(
-                n_epochs_range=(2, 3),
-                log_batch_size_range=(2, 5),
-            ),
-            n_architectures=n_architectures,
-        )
 
     features = torch.load(os.path.join(results_dir, "features.pt"))
     # list of tuples (node_feats, edge_indices, edge_feats, hpo_vec)
