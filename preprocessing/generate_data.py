@@ -205,10 +205,9 @@ def train_cnns_cfira10(
                 loss.backward()
                 optimizer.step()
 
-                if k % 20 == 19:
+                if k % 20 == 0 or k == len(trainloader) - 1:
                     print(
-                        f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.6f}",
-                        end="",
+                        f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
                     )
                     running_loss = 0.0
 
