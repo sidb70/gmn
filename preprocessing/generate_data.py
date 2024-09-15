@@ -1,5 +1,6 @@
 import sys
 import os
+from concurrent.futures import ThreadPoolExecutor
 from .hpo_configs import Hyperparameters, RandHyperparamsConfig
 from .get_cifar_data import get_cifar_data
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -21,6 +22,8 @@ if NUM_GPUS > 0:
     DEVICES = [torch.device(f'cuda:{i}') for i in range(NUM_GPUS)]
 else:
     DEVICES = [torch.device('cpu')]
+
+EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
 
 print("Using devices", DEVICES)
 
@@ -51,6 +54,65 @@ def train_random_cnns_hyperparams(
     os.makedirs(results_dir, exist_ok=True)
     torch.save(features, os.path.join(results_dir, "features.pt"))
     torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
+
+
+def train_cifar_worker(worker_id, hpo_config, random_cnn_config, device):
+    print("Training model", worker_id+1,  ' on device', device)
+    batch_size, lr, n_epochs, momentum = hpo_config.to_vec()
+
+    trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(device), batch_size=batch_size)
+
+    cnn = generate_random_cnn(random_cnn_config).to(device)
+    n_params = sum(p.numel() for p in cnn.parameters())
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.AdamW(cnn.parameters(), lr=lr)
+
+    for j in range(n_epochs):
+        running_loss = 0.0
+        for k, data in enumerate(trainloader, 0):
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)
+            optimizer.zero_grad()
+
+            outputs = cnn(inputs).reshape(-1, 10)
+            labels = labels.reshape(-1)
+            assert labels.shape[0] > 0
+            assert torch.min(labels) >= 0 
+            assert torch.max(labels) < 10
+            try:
+                loss = criterion(outputs, labels)
+            except Exception as e:
+                print(outputs, labels)
+                raise e
+            running_loss += loss.item()
+            loss.backward()
+            optimizer.step()
+
+            if k % 20 == 0 or k == len(trainloader) - 1:
+                print(
+                    f"\rTraining worker {worker_id}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
+                )
+                running_loss = 0.0
+
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        for data in testloader:
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+            outputs = cnn(images).reshape(-1, 10)
+            labels = labels.reshape(-1)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+        accuracy = correct / total
+
+    print(f"\nAccuracy: {accuracy}")
+    node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
+    features= (node_feats, edge_indices, edge_feats, hpo_vec)
+    return features, accuracy
 
 
 def train_cnns_cifar10(
@@ -95,64 +157,79 @@ def train_cnns_cifar10(
     features = []
     accuracies = []
 
-    for i in range(len(hyperparams)):
-        hpo_vec = hyperparams[i].to_vec()
-        print("Training model", i+1, "/", n_architectures, "with hyperparameters", hpo_vec)
-        batch_size, lr, n_epochs, momentum = hpo_vec
+    with ThreadPoolExecutor(len(DEVICES)) as executor:
+        for i in range(0, n_architectures, len(DEVICES)):
+            futures = []
+            for j, hpo_config in enumerate(hyperparams[i:i+len(DEVICES)]):
+                futures.append(executor.submit(train_cifar_worker, i+j, hpo_config, random_cnn_config, DEVICES[j]))
 
-        trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(DEVICES[0]), batch_size=batch_size)
+            for future in futures:
+                feature, accuracy = future.result()
+                features.append(feature)
+                accuracies.append(accuracy)
 
-        cnn = generate_random_cnn(random_cnn_config).to(DEVICES[0])
-        n_params = sum(p.numel() for p in cnn.parameters())
 
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.AdamW(cnn.parameters(), lr=lr)
 
-        for j in range(n_epochs):
-            running_loss = 0.0
-            for k, data in enumerate(trainloader, 0):
-                inputs, labels = data
-                inputs, labels = inputs.to(DEVICES[0]), labels.to(DEVICES[0])
-                optimizer.zero_grad()
 
-                outputs = cnn(inputs).reshape(-1, 10)
-                labels = labels.reshape(-1)
-                assert labels.shape[0] > 0
-                assert torch.min(labels) >= 0 
-                assert torch.max(labels) < 10
-                try:
-                    loss = criterion(outputs, labels)
-                except Exception as e:
-                    print(outputs, labels)
-                    raise e
-                running_loss += loss.item()
-                loss.backward()
-                optimizer.step()
 
-                if k % 20 == 0 or k == len(trainloader) - 1:
-                    print(
-                        f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
-                    )
-                    running_loss = 0.0
+    # for i in range(len(hyperparams)):
+    #     hpo_vec = hyperparams[i].to_vec()
+    #     print("Training model", i+1, "/", n_architectures, "with hyperparameters", hpo_vec)
+    #     batch_size, lr, n_epochs, momentum = hpo_vec
 
-        with torch.no_grad():
-            correct = 0
-            total = 0
-            for data in testloader:
-                images, labels = data
-                images, labels = images.to(DEVICES[0]), labels.to(DEVICES[0])
-                outputs = cnn(images).reshape(-1, 10)
-                labels = labels.reshape(-1)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+    #     trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(DEVICES[0]), batch_size=batch_size)
 
-            accuracy = correct / total
+    #     cnn = generate_random_cnn(random_cnn_config).to(DEVICES[0])
+    #     n_params = sum(p.numel() for p in cnn.parameters())
 
-        print(f"\nAccuracy: {accuracy}")
-        node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
-        features.append((node_feats, edge_indices, edge_feats, hpo_vec))
-        accuracies.append(accuracy)
+    #     criterion = nn.CrossEntropyLoss()
+    #     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
+
+    #     for j in range(n_epochs):
+    #         running_loss = 0.0
+    #         for k, data in enumerate(trainloader, 0):
+    #             inputs, labels = data
+    #             inputs, labels = inputs.to(DEVICES[0]), labels.to(DEVICES[0])
+    #             optimizer.zero_grad()
+
+    #             outputs = cnn(inputs).reshape(-1, 10)
+    #             labels = labels.reshape(-1)
+    #             assert labels.shape[0] > 0
+    #             assert torch.min(labels) >= 0 
+    #             assert torch.max(labels) < 10
+    #             try:
+    #                 loss = criterion(outputs, labels)
+    #             except Exception as e:
+    #                 print(outputs, labels)
+    #                 raise e
+    #             running_loss += loss.item()
+    #             loss.backward()
+    #             optimizer.step()
+
+    #             if k % 20 == 0 or k == len(trainloader) - 1:
+    #                 print(
+    #                     f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
+    #                 )
+    #                 running_loss = 0.0
+
+    #     with torch.no_grad():
+    #         correct = 0
+    #         total = 0
+    #         for data in testloader:
+    #             images, labels = data
+    #             images, labels = images.to(DEVICES[0]), labels.to(DEVICES[0])
+    #             outputs = cnn(images).reshape(-1, 10)
+    #             labels = labels.reshape(-1)
+    #             _, predicted = torch.max(outputs.data, 1)
+    #             total += labels.size(0)
+    #             correct += (predicted == labels).sum().item()
+
+    #         accuracy = correct / total
+
+    #     print(f"\nAccuracy: {accuracy}")
+    #     node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
+    #     features.append((node_feats, edge_indices, edge_feats, hpo_vec))
+    #     accuracies.append(accuracy)
 
     if save:
         os.makedirs(results_dir, exist_ok=True)
