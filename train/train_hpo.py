@@ -11,7 +11,6 @@ from models.models import HPOMPNN
 from preprocessing.data_loader import get_dataset
 from preprocessing.generate_data import generate_random_cnn
 from gmn_lim.model_arch_graph import seq_to_feats
-import time
 
 
 torch.manual_seed(0)

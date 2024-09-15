@@ -1,12 +1,12 @@
-import unittest
 import os
 import sys
-from pprint import pprint
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+import unittest
+from pprint import pprint
+import time
 import torch
 import torch.nn as nn
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
@@ -29,7 +29,7 @@ class TestSeqToNet(unittest.TestCase):
         self.validate_net_feats(node_feats, edge_indices, edge_feats)
 
 
-    def test_cnn_to_net_1(self):
+    def test_cnn_to_net(self):
         """
         CNN with avgpool
         """
@@ -74,25 +74,24 @@ class TestSeqToNet(unittest.TestCase):
 
         self.validate_net_feats(node_feats, edge_indices, edge_feats)
 
+    def test_time_random_cnn_to_net(self):
 
-    def test_cnn_to_net_3(self):
-
-        neq = nn.Sequential(
-            nn.Conv2d(3, 8, 3),
-            nn.BatchNorm2d(8),
-            nn.ReLU(),
-            nn.Flatten(),
-            nn.Linear(8, 4),
-            nn.ReLU(),
-            nn.Linear(4, 8),
-            nn.ReLU(),
-            nn.Linear(8, 10),
-            nn.ReLU(),
-        )
-
-        node_feats, edge_indices, edge_feats = seq_to_feats(neq)
-
-        self.validate_net_feats(node_feats, edge_indices, edge_feats)
+        start=time.time()
+        model = generate_random_cnn(RandCNNConfig(
+            in_dim=32,
+            in_channels=3,
+            n_classes=10,
+            n_conv_layers_range=(10,15),
+            n_fc_layers_range=(8,10),
+            log_hidden_channels_range=(7,8),
+            log_hidden_fc_units_range=(4,5),
+        ))
+        print("Time to create random cnn:", round(time.time()-start,5))
+        print('Total params', sum(p.numel() for p in model.parameters()))
+        start = time.time()
+        feats = seq_to_feats(model)
+        print([f.shape for f in feats])
+        print("Time to create feats:", round(time.time()-start,5))
 
 
     def test_random_cnns_to_net(self):
@@ -103,11 +102,9 @@ class TestSeqToNet(unittest.TestCase):
             cnn = generate_random_cnn(
                 RandCNNConfig(
                     log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4),
-                    use_avg_pool_prob=torch.randint(0, 2, (1,)).item() == 1
+                    use_avg_pool_prob=1.0
                 )
             )
-
-            print(cnn)
             
             node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
 
@@ -116,9 +113,10 @@ class TestSeqToNet(unittest.TestCase):
 
 
     def validate_net_feats(self, node_feats, edge_indices, edge_feats):
-        self.assertEqual(node_feats.shape[1], 3) # 3 features per node
-        self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
+        # 3 features per node
+        self.assertEqual(node_feats.shape[1], 3) 
         # same number of edge indices and edge features
+        self.assertEqual(edge_indices.shape[1], edge_feats.shape[0])
 
 
 

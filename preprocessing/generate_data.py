@@ -3,38 +3,23 @@ import os
 from .hpo_configs import Hyperparameters, RandHyperparamsConfig
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import typing
 import torch
 import torch.nn as nn
 from torch import optim
 import torchvision
-import numpy as np
-from dataclasses import dataclass, field
+from typing import List
 
 from config import use_ffcv, cifar10_train_size
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
-if use_ffcv:
-    from .write_ffcv_data import cifar_10_to_beton
-    from ffcv.loader import Loader, OrderOption
-    from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Convert, Squeeze
-    from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
-    from ffcv.fields.basics import Operation
-else:
-    from torch.utils.data.sampler import SubsetRandomSampler
-    from torch.utils.data import DataLoader
 
-    from torchvision import transforms
-    from torchvision.datasets import CIFAR10
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-from typing import List
-
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+print("Using device:", DEVICE)
 
 def train_random_cnns_hyperparams(
-    save_dir,
+    results_dir,
     n_architectures=10,
     random_cnn_config=RandCNNConfig(),
     random_hyperparams_config=RandHyperparamsConfig(),
@@ -46,22 +31,23 @@ def train_random_cnns_hyperparams(
     features = []
     accuracies = []
 
-    hyperparams = random_hyperparams_config.sample()
-
-    for _ in range(n_architectures):
+    for i in range(n_architectures):
 
         hyperparams = random_hyperparams_config.sample()
 
+        print(f"Training CNN {i+1}/{n_architectures}")
         feats, acc = train_cnns_cfira10(
             hyperparams=hyperparams,
             random_cnn_config=random_cnn_config,
             n_architectures=1,
-            results_dir=save_dir,
-            save=True,
-            replace_if_existing=False,
+            save=False,
         )
         features.append(feats[0])
         accuracies.append(acc[0])
+
+    os.makedirs(results_dir, exist_ok=True)
+    torch.save(features, os.path.join(results_dir, "features.pt"))
+    torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
 
 
 def train_cnns_cfira10(
@@ -69,7 +55,6 @@ def train_cnns_cfira10(
     random_cnn_config=RandCNNConfig(n_classes=10),
     n_architectures=10,
     num_workers=4,
-    optimizer_type=None,
     data_dir="data",
     results_dir="data/cnn",
     save=True,
@@ -90,7 +75,14 @@ def train_cnns_cfira10(
     - replace_if_existing: bool, whether to replace the existing results if they exist or append to them
 
     Saves these files to the specified directory:
-    - {results_dir}/features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
+    - {results_dir}/features.pt: 
+        list of tuples (
+            node_feats: n_nodes x 3 Tensor,
+            edge_indices: n_params x 2 Tensor, 
+            edge_feats: n_params x 6 Tensor,
+            hpo_vec: list of hyperparameters
+        ) for each model
+    
     - {results_dir}/accuracies.pt: list of accuracies for each model.
     """
 
@@ -99,7 +91,15 @@ def train_cnns_cfira10(
     hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
 
-    if use_ffcv:
+    try:
+        assert DEVICE == torch.device("cuda:0"), "Using FFCV but no GPU available"
+
+        from .write_ffcv_data import cifar_10_to_beton
+        from ffcv.loader import Loader, OrderOption
+        from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Convert, Squeeze
+        from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
+        from ffcv.fields.basics import Operation
+
         if not os.path.exists(os.path.join(data_dir, "cifar_train.beton")):
             cifar_10_to_beton(data_dir)
 
@@ -112,7 +112,7 @@ def train_cnns_cfira10(
             label_pipeline: List[Operation] = [
                 IntDecoder(),
                 ToTensor(),
-                ToDevice("cuda:0"),
+                ToDevice(DEVICE),
                 Squeeze(),
             ]
             image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
@@ -140,7 +140,13 @@ def train_cnns_cfira10(
         trainloader = loaders["train"]
         testloader = loaders["test"]
 
-    else:
+    except:
+        from torch.utils.data.sampler import SubsetRandomSampler
+        from torch.utils.data import DataLoader
+
+        from torchvision import transforms
+        from torchvision.datasets import CIFAR10
+    
         cifar_10_dir = os.path.join(data_dir, "cifar10")
 
         transform = transforms.Compose(
@@ -199,9 +205,9 @@ def train_cnns_cfira10(
                 loss.backward()
                 optimizer.step()
 
-                if k % 20 == 0:
+                if k % 20 == 19:
                     print(
-                        f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",
+                        f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.6f}",
                         end="",
                     )
                     running_loss = 0.0
