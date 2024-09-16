@@ -5,7 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
 import torch.nn as nn
-from models.models import HPOMPNN
+from models.mpnn_models import HPOMPNN
 import numpy as np
 
 

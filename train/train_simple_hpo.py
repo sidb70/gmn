@@ -1,31 +1,13 @@
 import sys
 import os
+
+from models.simple_acc_predictor import AccuracyPredictor
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
 import torch.nn as nn
 
 from sklearn.preprocessing import StandardScaler
-
-
-class AccuracyPredictor(nn.Module):
-    """
-    To benchmark the GMN,
-    Simple neural network to predict accuracy from just hyperparameters and  
-    """
-
-    def __init__(self, input_dim, hidden_dim):
-        super(AccuracyPredictor, self).__init__()
-
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, 1)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
 
 
 def train_simple_hpo(features, accuracies):

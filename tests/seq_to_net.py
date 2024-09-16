@@ -7,6 +7,7 @@ from pprint import pprint
 import time
 import torch
 import torch.nn as nn
+import numpy as np
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
@@ -97,6 +98,7 @@ class TestSeqToNet(unittest.TestCase):
     def test_random_cnns_to_net(self):
 
         torch.manual_seed(0)
+        np.random.seed(0)
 
         for _ in range(10):
             cnn = generate_random_cnn(

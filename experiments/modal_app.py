@@ -1,11 +1,14 @@
 import modal
+import modal.gpu
 import torch
+import numpy as np
 import time
 from experiments.run_train_hpo import load_data
 from preprocessing.generate_data import train_random_cnns_hyperparams
 from preprocessing.hpo_configs import RandHyperparamsConfig, RandCNNConfig
 from train.train_hpo2 import train_hpo_mpnn
 from train.utils import split
+from experiments.train_1_cnn import train_1_cnn
 
 
 app = modal.App("hpo")
@@ -30,7 +33,12 @@ image = (
 )
 
 
-@app.function(gpu="A10G", image=image, retries=0, volumes={"/data": vol}, timeout=3600)
+@app.function(gpu=modal.gpu.A10G(), image=image, retries=0, volumes={"/data": vol}, timeout=3600)
+def train_one_cnn():
+    train_1_cnn()
+
+
+@app.function(gpu=modal.gpu.A10G(count=4), image=image, retries=0, volumes={"/data": vol}, timeout=3600)
 def generate_data():
 
     import subprocess
@@ -39,6 +47,7 @@ def generate_data():
     subprocess.run(["nvidia-smi", "--list-gpus"], check=True)
 
     torch.manual_seed(0)
+    np.random.seed(0)
 
     start_time = time.time()
     n_architectures = 15
@@ -47,9 +56,8 @@ def generate_data():
         n_architectures=n_architectures,
         random_cnn_config=RandCNNConfig(),
         random_hyperparams_config=RandHyperparamsConfig(
-            log_batch_size_range=(4, 10),
             momentum_range=[0.5, 0.5],  # doesn't matter bc using adamw
-            n_epochs_range=[1, 2],
+            n_epochs_range=[50, 51],
         ),
     )
     print(f"Trained {n_architectures} CNNs in {time.time() - start_time:.2f} seconds.")
@@ -70,7 +78,7 @@ def train_hpo_model():
     mpnn = train_hpo_mpnn(feats_train, labels_train)
 
 
+
 @app.local_entrypoint()
 def main():
-    generate_data.remote()
-    train_hpo_mpnn.remote()
+    train_one_cnn.remote()

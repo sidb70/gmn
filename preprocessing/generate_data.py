@@ -8,10 +8,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import torch
 import torch.nn as nn
 from torch import optim
-import torchvision
 from typing import List
 
-from config import use_ffcv, cifar10_train_size
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
@@ -48,17 +46,28 @@ def train_random_cnns_hyperparams(
         random_cnn_config=random_cnn_config,
         save=False,
     )
-    # features.append(feats[0])
-    # accuracies.append(acc[0])
 
     os.makedirs(results_dir, exist_ok=True)
     torch.save(features, os.path.join(results_dir, "features.pt"))
     torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
 
 
-def train_cifar_worker(worker_id, hpo_config, random_cnn_config, device):
-    print("Training model", worker_id+1,  ' on device', device)
-    batch_size, lr, n_epochs, momentum = hpo_config.to_vec()
+def train_cifar_worker(
+    architecture_id: int, 
+    hyperparams: Hyperparameters, 
+    random_cnn_config: RandCNNConfig, 
+    device: torch.device
+):
+    """
+    Generates and trains a random CNN on CIFAR10 data with the given hyperparameters, on the given CUDA device.
+
+    Args:
+    - architecture_id: int, just used for logging
+    """
+
+    print("Training model", architecture_id+1,  ' on device', device)
+    hpo_vec = hyperparams.to_vec()
+    batch_size, lr, n_epochs, momentum = hpo_vec
 
     trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(device), batch_size=batch_size)
 
@@ -67,6 +76,9 @@ def train_cifar_worker(worker_id, hpo_config, random_cnn_config, device):
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
+
+    running_losses = []
+    batch_nums = []
 
     for j in range(n_epochs):
         running_loss = 0.0
@@ -89,12 +101,19 @@ def train_cifar_worker(worker_id, hpo_config, random_cnn_config, device):
             loss.backward()
             optimizer.step()
 
-            if k % 20 == 0 or k == len(trainloader) - 1:
+            if (k+1) % 50 == 0 or k == len(trainloader) - 1:
+                running_loss_batches = 50 if (k+1) % 50 == 0 else (k+1) % 50
+
+                avg_running_loss = running_loss / running_loss_batches
                 print(
-                    f"\rTraining worker {worker_id}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
+                    f"\rTraining one cnn. {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Running Loss: {avg_running_loss:.3f}",end=""
                 )
+                running_losses.append(avg_running_loss)
+                batch_nums.append(j * len(trainloader) + k)
+
                 running_loss = 0.0
 
+    # calculate accuracy
     with torch.no_grad():
         correct = 0
         total = 0
@@ -116,11 +135,8 @@ def train_cifar_worker(worker_id, hpo_config, random_cnn_config, device):
 
 
 def train_cnns_cifar10(
-    hyperparams=Hyperparameters(),
+    hyperparams=List[Hyperparameters()],
     random_cnn_config=RandCNNConfig(n_classes=10),
-    num_workers=16,
-    optimizer_type=None,
-    data_dir="data",
     results_dir="data/cnn",
     save=True,
     replace_if_existing=False,
@@ -130,7 +146,7 @@ def train_cnns_cifar10(
     Saves the resulting CNN node and edge features and their accuracies in directory
 
     Args:
-    - hyperparams: Hyperparameters, the hyperparameters to use for training
+    - hyperparams: List of Hyperparameters, the hyperparameters to use for training each model.
     - random_cnn_config: RandomCNNConfig, the configuration for generating random CNNs
     - optimizer_type: torch.optim.Optimizer, the optimizer to use. If None, uses SGD
     - data_dir: str, the directory in which the CIFAR10 data is stored
@@ -167,9 +183,6 @@ def train_cnns_cifar10(
                 feature, accuracy = future.result()
                 features.append(feature)
                 accuracies.append(accuracy)
-
-
-
 
 
     # for i in range(len(hyperparams)):

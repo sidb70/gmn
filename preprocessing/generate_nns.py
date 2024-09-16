@@ -29,6 +29,7 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
     log_hidden_channels_range = config.log_hidden_channels_range
     log_hidden_fc_units_range = config.log_hidden_fc_units_range
     use_avg_pool_prob = config.use_avg_pool_prob
+    pool_after_conv = config.pool_after_conv
 
     layers = []  # list of nn.Module
 
@@ -44,6 +45,10 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
             # and the in channels is the out channels of the previous layer
             in_channels = out_channels
 
+            # check if kernel size is too large for the current in_dim
+            if in_dim < kernel_size:
+                break
+
         # For each conv layer, randomly determine the number of hidden channels
         out_channels = 2 ** torch.randint(*log_hidden_channels_range, (1,)).item()
         padding = 0
@@ -55,6 +60,10 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
         layers.append(
             nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)
         )
+        if pool_after_conv:
+            layers.append(nn.MaxPool2d(2))
+            conv_out_dim = conv_out_dim // 2
+
         layers.append(nn.BatchNorm2d(out_channels))
         layers.append(nn.ReLU())
 

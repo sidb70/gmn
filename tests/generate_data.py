@@ -3,6 +3,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
+import numpy as np
 import unittest
 import shutil
 from preprocessing.generate_data import (
@@ -16,7 +17,8 @@ class TestGenerateData(unittest.TestCase):
 
     def test_train_random_cnn(self):
 
-        torch.manual_seed(1)
+        torch.manual_seed(0)
+        np.random.seed(0)
 
         random_cnn_config = RandCNNConfig(
             n_classes=10,

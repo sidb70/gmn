@@ -56,6 +56,7 @@ class RandCNNConfig:
     log_hidden_channels_range: Tuple[int, int] = (4, 8) # n hidden channels = 2^sampled value
     log_hidden_fc_units_range: Tuple[int, int] = (4, 8) # n hidden fc units = 2^sampled value
     use_avg_pool_prob: float = 1.0
+    pool_after_conv: bool = False
 
 
 @dataclass
