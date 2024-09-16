@@ -1,13 +1,12 @@
 import torch.nn as nn
 import torch
-import random
 import numpy as np
 from argparse import ArgumentParser
 import sys
 import os
 from utils import split
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from models.models import BaseMPNN
+from models.mpnn_models import BaseMPNN
 from preprocessing.data_loader import get_dataset
 import time
 from preprocessing.data_loader import get_dataset
@@ -21,7 +20,7 @@ from torchvision import transforms
 from torchvision.datasets import CIFAR10
 
 torch.manual_seed(0)
-random.seed(0)
+np.random.seed(0)
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

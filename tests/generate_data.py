@@ -1,20 +1,15 @@
-import torch
-import unittest
 import os
 import sys
-import shutil
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+import torch
+import numpy as np
+import unittest
+import shutil
 from preprocessing.generate_data import (
     train_cnns_cfira10,
-    train_random_cnns_hyperparams,
     Hyperparameters,
-)
-from preprocessing.data_loader import get_dataset
-from preprocessing.generate_nns import (
-    generate_random_cnn,
-    generate_random_mlp,
-    RandCNNConfig,
+    RandCNNConfig
 )
 
 
@@ -22,7 +17,8 @@ class TestGenerateData(unittest.TestCase):
 
     def test_train_random_cnn(self):
 
-        torch.manual_seed(1)
+        torch.manual_seed(0)
+        np.random.seed(0)
 
         random_cnn_config = RandCNNConfig(
             n_classes=10,
@@ -34,7 +30,7 @@ class TestGenerateData(unittest.TestCase):
         )
 
         hyperparams = Hyperparameters(
-            batch_size=4,
+            log_batch_size=4,
             lr=0.01,
             n_epochs=4,
             momentum=0.5,
@@ -45,9 +41,9 @@ class TestGenerateData(unittest.TestCase):
             log_hidden_fc_units_range=(2, 4),
         )
 
-        hyperparams = Hyperparameters(batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
+        hyperparams = Hyperparameters(log_batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
 
-        save_dir = "data/hpo_temp"
+        save_dir = "data/hpo_test"
         train_cnns_cfira10(
             n_architectures=1,
             results_dir=save_dir,
@@ -58,6 +54,9 @@ class TestGenerateData(unittest.TestCase):
 
         feats = torch.load(os.path.join(save_dir, "features.pt"))
         accuracies = torch.load(os.path.join(save_dir, "accuracies.pt"))
+
+        shutil.rmtree(save_dir)
+
 
     @unittest.skip("skip")
     def test_train_cnns(self):
@@ -71,7 +70,7 @@ class TestGenerateData(unittest.TestCase):
             log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4)
         )
 
-        hyperparams = Hyperparameters(batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
+        hyperparams = Hyperparameters(log_batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
 
         results_dir = "data/test"
         os.makedirs(results_dir, exist_ok=True)
