@@ -167,3 +167,6 @@ gmn_lim_old/
 .vscode
 config.py
 commit.txt
+
+# core file
+core*

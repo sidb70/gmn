@@ -1,6 +1,6 @@
 import sys
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from .hpo_configs import Hyperparameters, RandHyperparamsConfig
 from .get_cifar_data import get_cifar_data
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -8,8 +8,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import torch
 import torch.nn as nn
 from torch import optim
-from typing import List
-
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
@@ -21,7 +19,8 @@ if NUM_GPUS > 0:
 else:
     DEVICES = [torch.device('cpu')]
 
-EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
+#EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
+EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 
 print("Using devices", DEVICES)
 
@@ -73,6 +72,8 @@ def train_cifar_worker(
 
     cnn = generate_random_cnn(random_cnn_config).to(device)
     n_params = sum(p.numel() for p in cnn.parameters())
+
+    print("Worker", worker_id, "has", n_params, "parameters")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
@@ -183,67 +184,6 @@ def train_cnns_cifar10(
                 feature, accuracy = future.result()
                 features.append(feature)
                 accuracies.append(accuracy)
-
-
-    # for i in range(len(hyperparams)):
-    #     hpo_vec = hyperparams[i].to_vec()
-    #     print("Training model", i+1, "/", n_architectures, "with hyperparameters", hpo_vec)
-    #     batch_size, lr, n_epochs, momentum = hpo_vec
-
-    #     trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(DEVICES[0]), batch_size=batch_size)
-
-    #     cnn = generate_random_cnn(random_cnn_config).to(DEVICES[0])
-    #     n_params = sum(p.numel() for p in cnn.parameters())
-
-    #     criterion = nn.CrossEntropyLoss()
-    #     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
-
-    #     for j in range(n_epochs):
-    #         running_loss = 0.0
-    #         for k, data in enumerate(trainloader, 0):
-    #             inputs, labels = data
-    #             inputs, labels = inputs.to(DEVICES[0]), labels.to(DEVICES[0])
-    #             optimizer.zero_grad()
-
-    #             outputs = cnn(inputs).reshape(-1, 10)
-    #             labels = labels.reshape(-1)
-    #             assert labels.shape[0] > 0
-    #             assert torch.min(labels) >= 0 
-    #             assert torch.max(labels) < 10
-    #             try:
-    #                 loss = criterion(outputs, labels)
-    #             except Exception as e:
-    #                 print(outputs, labels)
-    #                 raise e
-    #             running_loss += loss.item()
-    #             loss.backward()
-    #             optimizer.step()
-
-    #             if k % 20 == 0 or k == len(trainloader) - 1:
-    #                 print(
-    #                     f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
-    #                 )
-    #                 running_loss = 0.0
-
-    #     with torch.no_grad():
-    #         correct = 0
-    #         total = 0
-    #         for data in testloader:
-    #             images, labels = data
-    #             images, labels = images.to(DEVICES[0]), labels.to(DEVICES[0])
-    #             outputs = cnn(images).reshape(-1, 10)
-    #             labels = labels.reshape(-1)
-    #             _, predicted = torch.max(outputs.data, 1)
-    #             total += labels.size(0)
-    #             correct += (predicted == labels).sum().item()
-
-    #         accuracy = correct / total
-
-    #     print(f"\nAccuracy: {accuracy}")
-    #     node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
-    #     features.append((node_feats, edge_indices, edge_feats, hpo_vec))
-    #     accuracies.append(accuracy)
-
     if save:
         os.makedirs(results_dir, exist_ok=True)
 
