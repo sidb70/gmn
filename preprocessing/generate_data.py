@@ -73,7 +73,7 @@ def train_cifar_worker(
     cnn = generate_random_cnn(random_cnn_config).to(device)
     n_params = sum(p.numel() for p in cnn.parameters())
 
-    print("Worker", worker_id, "has", n_params, "parameters")
+    print("Worker", architecture_id, "has", n_params, "parameters")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
@@ -136,7 +136,7 @@ def train_cifar_worker(
 
 
 def train_cnns_cifar10(
-    hyperparams=List[Hyperparameters()],
+    hyperparams=[Hyperparameters()],
     random_cnn_config=RandCNNConfig(n_classes=10),
     results_dir="data/cnn",
     save=True,
