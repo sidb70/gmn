@@ -1,40 +1,31 @@
 import sys
 import os
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from .hpo_configs import Hyperparameters, RandHyperparamsConfig
+from .get_cifar_data import get_cifar_data
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import typing
 import torch
 import torch.nn as nn
 from torch import optim
-import torchvision
-import numpy as np
-from dataclasses import dataclass, field
-
-from config import use_ffcv, cifar10_train_size
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 
-if use_ffcv:
-    from .write_ffcv_data import cifar_10_to_beton
-    from ffcv.loader import Loader, OrderOption
-    from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Convert, Squeeze
-    from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder
-    from ffcv.fields.basics import Operation
+
+# DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+NUM_GPUS = torch.cuda.device_count()
+if NUM_GPUS > 0:  
+    DEVICES = [torch.device(f'cuda:{i}') for i in range(NUM_GPUS)]
 else:
-    from torch.utils.data.sampler import SubsetRandomSampler
-    from torch.utils.data import DataLoader
+    DEVICES = [torch.device('cpu')]
 
-    from torchvision import transforms
-    from torchvision.datasets import CIFAR10
+#EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
+EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 
-from typing import List
-
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+print("Using devices", DEVICES)
 
 def train_random_cnns_hyperparams(
-    save_dir,
+    results_dir,
     n_architectures=10,
     random_cnn_config=RandCNNConfig(),
     random_hyperparams_config=RandHyperparamsConfig(),
@@ -46,31 +37,107 @@ def train_random_cnns_hyperparams(
     features = []
     accuracies = []
 
-    hyperparams = random_hyperparams_config.sample()
+    hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]  
+    print("Training with hyperparams", hyperparams)
 
-    for _ in range(n_architectures):
+    features, accuracies = train_cnns_cifar10(
+        hyperparams=hyperparams,
+        random_cnn_config=random_cnn_config,
+        save=False,
+    )
 
-        hyperparams = random_hyperparams_config.sample()
-
-        feats, acc = train_cnns_cfira10(
-            hyperparams=hyperparams,
-            random_cnn_config=random_cnn_config,
-            n_architectures=1,
-            results_dir=save_dir,
-            save=True,
-            replace_if_existing=False,
-        )
-        features.append(feats[0])
-        accuracies.append(acc[0])
+    os.makedirs(results_dir, exist_ok=True)
+    torch.save(features, os.path.join(results_dir, "features.pt"))
+    torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
 
 
-def train_cnns_cfira10(
-    hyperparams=Hyperparameters(),
+def train_cifar_worker(
+    architecture_id: int, 
+    hyperparams: Hyperparameters, 
+    random_cnn_config: RandCNNConfig, 
+    device: torch.device
+):
+    """
+    Generates and trains a random CNN on CIFAR10 data with the given hyperparameters, on the given CUDA device.
+
+    Args:
+    - architecture_id: int, just used for logging
+    """
+
+    print("Training model", architecture_id+1,  ' on device', device)
+    hpo_vec = hyperparams.to_vec()
+    batch_size, lr, n_epochs, momentum = hpo_vec
+
+    trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(device), batch_size=batch_size)
+
+    cnn = generate_random_cnn(random_cnn_config).to(device)
+    n_params = sum(p.numel() for p in cnn.parameters())
+
+    print("Worker", architecture_id, "has", n_params, "parameters")
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.AdamW(cnn.parameters(), lr=lr)
+
+    running_losses = []
+    batch_nums = []
+
+    for j in range(n_epochs):
+        running_loss = 0.0
+        for k, data in enumerate(trainloader, 0):
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)
+            optimizer.zero_grad()
+
+            outputs = cnn(inputs).reshape(-1, 10)
+            labels = labels.reshape(-1)
+            assert labels.shape[0] > 0
+            assert torch.min(labels) >= 0 
+            assert torch.max(labels) < 10
+            try:
+                loss = criterion(outputs, labels)
+            except Exception as e:
+                print(outputs, labels)
+                raise e
+            running_loss += loss.item()
+            loss.backward()
+            optimizer.step()
+
+            if (k+1) % 50 == 0 or k == len(trainloader) - 1:
+                running_loss_batches = 50 if (k+1) % 50 == 0 else (k+1) % 50
+
+                avg_running_loss = running_loss / running_loss_batches
+                print(
+                    f"\rTraining one cnn. {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Running Loss: {avg_running_loss:.3f}",end=""
+                )
+                running_losses.append(avg_running_loss)
+                batch_nums.append(j * len(trainloader) + k)
+
+                running_loss = 0.0
+
+    # calculate accuracy
+    with torch.no_grad():
+        correct = 0
+        total = 0
+        for data in testloader:
+            images, labels = data
+            images, labels = images.to(device), labels.to(device)
+            outputs = cnn(images).reshape(-1, 10)
+            labels = labels.reshape(-1)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+        accuracy = correct / total
+
+    print(f"\nAccuracy: {accuracy}")
+    node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
+    features= (node_feats, edge_indices, edge_feats, hpo_vec)
+    return features, accuracy
+
+
+def train_cnns_cifar10(
+    hyperparams=[Hyperparameters()],
     random_cnn_config=RandCNNConfig(n_classes=10),
-    n_architectures=10,
-    num_workers=4,
-    optimizer_type=None,
-    data_dir="data",
     results_dir="data/cnn",
     save=True,
     replace_if_existing=False,
@@ -80,9 +147,8 @@ def train_cnns_cfira10(
     Saves the resulting CNN node and edge features and their accuracies in directory
 
     Args:
-    - hyperparams: Hyperparameters, the hyperparameters to use for training
+    - hyperparams: List of Hyperparameters, the hyperparameters to use for training each model.
     - random_cnn_config: RandomCNNConfig, the configuration for generating random CNNs
-    - n_architectures: int, the number of architectures to generate
     - optimizer_type: torch.optim.Optimizer, the optimizer to use. If None, uses SGD
     - data_dir: str, the directory in which the CIFAR10 data is stored
     - results_dir: str, the directory in which to save the CNN features and their accuracies
@@ -90,140 +156,34 @@ def train_cnns_cfira10(
     - replace_if_existing: bool, whether to replace the existing results if they exist or append to them
 
     Saves these files to the specified directory:
-    - {results_dir}/features.pt: list of tuples (node_feats, edge_indices, edge_feats) for each model
+    - {results_dir}/features.pt: 
+        list of tuples (
+            node_feats: n_nodes x 3 Tensor,
+            edge_indices: n_params x 2 Tensor, 
+            edge_feats: n_params x 6 Tensor,
+            hpo_vec: list of hyperparameters
+        ) for each model
+    
     - {results_dir}/accuracies.pt: list of accuracies for each model.
     """
 
-    print(f"Training {n_architectures} cnn(s) with hyperparameters {hyperparams}")
+    n_architectures = len(hyperparams)
 
-    hpo_vec = hyperparams.to_vec()
-    batch_size, lr, n_epochs, momentum = hpo_vec
-
-    if use_ffcv:
-        if not os.path.exists(os.path.join(data_dir, "cifar_train.beton")):
-            cifar_10_to_beton(data_dir)
-
-        ###
-        # https://docs.ffcv.io/ffcv_examples/cifar10.html
-        CIFAR_MEAN = [125.307, 122.961, 113.8575]
-        CIFAR_STD = [51.5865, 50.847, 51.255]
-        loaders = {}
-        for name in ["train", "test"]:
-            label_pipeline: List[Operation] = [
-                IntDecoder(),
-                ToTensor(),
-                ToDevice("cuda:0"),
-                Squeeze(),
-            ]
-            image_pipeline: List[Operation] = [SimpleRGBImageDecoder()]
-
-            image_pipeline.extend(
-                [
-                    ToTensor(),
-                    ToDevice(DEVICE, non_blocking=True),
-                    ToTorchImage(),
-                    Convert(torch.float32),
-                    torchvision.transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
-                ]
-            )
-
-            # Create loaders
-            loaders[name] = Loader(
-                os.path.join(data_dir, f"cifar_{name}.beton"),
-                batch_size=batch_size,
-                num_workers=num_workers,
-                order=OrderOption.RANDOM,
-                drop_last=(name == "train"),
-                pipelines={"image": image_pipeline, "label": label_pipeline},
-            )
-        ###
-        trainloader = loaders["train"]
-        testloader = loaders["test"]
-
-    else:
-        cifar_10_dir = os.path.join(data_dir, "cifar10")
-
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            ]
-        )
-
-        trainset = CIFAR10(
-            root=cifar_10_dir, train=True, download=True, transform=transform
-        )
-        train_sampler = SubsetRandomSampler(
-            torch.randperm(len(trainset))[:cifar10_train_size]
-        )
-
-        trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
-
-        testset = CIFAR10(
-            root=cifar_10_dir, train=False, download=True, transform=transform
-        )
-        test_size = cifar10_train_size // 4
-        test_sampler = SubsetRandomSampler(torch.randperm(len(testset))[:test_size])
-
-        testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
+    print(f"Training {len(hyperparams)} cnn(s) with hyperparameters {hyperparams}")
 
     features = []
     accuracies = []
 
-    for i in range(n_architectures):
+    with ThreadPoolExecutor(len(DEVICES)) as executor:
+        for i in range(0, n_architectures, len(DEVICES)):
+            futures = []
+            for j, hpo_config in enumerate(hyperparams[i:i+len(DEVICES)]):
+                futures.append(executor.submit(train_cifar_worker, i+j, hpo_config, random_cnn_config, DEVICES[j]))
 
-        cnn = generate_random_cnn(random_cnn_config).to(DEVICE)
-        n_params = sum(p.numel() for p in cnn.parameters())
-
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.AdamW(cnn.parameters(), lr=lr)
-
-        for j in range(n_epochs):
-            running_loss = 0.0
-            for k, data in enumerate(trainloader, 0):
-                inputs, labels = data
-                inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
-                optimizer.zero_grad()
-
-                outputs = cnn(inputs).reshape(-1, 10)
-                labels = labels.reshape(-1)
-                assert labels.shape[0] > 0
-                assert torch.min(labels) >= 0 
-                assert torch.max(labels) < 10
-                try:
-                    loss = criterion(outputs, labels)
-                except Exception as e:
-                    print(outputs, labels)
-                    raise e
-                running_loss += loss.item()
-                loss.backward()
-                optimizer.step()
-
-                if k % 20 == 0 or k == len(trainloader) - 1:
-                    print(
-                        f"\rTraining model {i+1}/{n_architectures}, {n_params} params, Epoch {j+1}/{n_epochs},Batch {k+1}/{len(trainloader)}, Loss: {running_loss:.3f}",end=""
-                    )
-                    running_loss = 0.0
-
-        with torch.no_grad():
-            correct = 0
-            total = 0
-            for data in testloader:
-                images, labels = data
-                images, labels = images.to(DEVICE), labels.to(DEVICE)
-                outputs = cnn(images).reshape(-1, 10)
-                labels = labels.reshape(-1)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-
-            accuracy = correct / total
-
-        print(f"\nAccuracy: {accuracy}")
-        node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
-        features.append((node_feats, edge_indices, edge_feats, hpo_vec))
-        accuracies.append(accuracy)
-
+            for future in futures:
+                feature, accuracy = future.result()
+                features.append(feature)
+                accuracies.append(accuracy)
     if save:
         os.makedirs(results_dir, exist_ok=True)
 
