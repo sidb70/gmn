@@ -26,9 +26,9 @@ print("Using devices", DEVICES)
 
 def train_random_cnns_hyperparams(
     results_dir,
+    random_cnn_config: RandCNNConfig ,
+    random_hyperparams_config: RandHyperparamsConfig,
     n_architectures=10,
-    random_cnn_config=RandCNNConfig(),
-    random_hyperparams_config=RandHyperparamsConfig(),
 ):
     """
     Generates and trains random CNNs, using random hyperparameters.
@@ -40,15 +40,12 @@ def train_random_cnns_hyperparams(
     hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]  
     print("Training with hyperparams", hyperparams)
 
-    features, accuracies = train_cnns_cifar10(
+    train_cnns_cifar10(
+        results_dir='data/cnn_hpo/',
         hyperparams=hyperparams,
         random_cnn_config=random_cnn_config,
         save=False,
     )
-
-    os.makedirs(results_dir, exist_ok=True)
-    torch.save(features, os.path.join(results_dir, "features.pt"))
-    torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
 
 
 def train_cifar_worker(
@@ -136,9 +133,9 @@ def train_cifar_worker(
 
 
 def train_cnns_cifar10(
+    results_dir,
     hyperparams=[Hyperparameters()],
     random_cnn_config=RandCNNConfig(n_classes=10),
-    results_dir="data/cnn",
     save=True,
     replace_if_existing=False,
 ):
@@ -171,9 +168,25 @@ def train_cnns_cifar10(
 
     print(f"Training {len(hyperparams)} cnn(s) with hyperparameters {hyperparams}")
 
-    features = []
-    accuracies = []
 
+
+    os.makedirs(results_dir, exist_ok=True)
+    if replace_if_existing \
+        or not os.path.exists(os.path.join(results_dir, "features.pt")) \
+        or not os.path.exists(os.path.join(results_dir, "accuracies.pt")):
+        # if feats and accuracies already exist, delete them and save the new data.
+        features_path = os.path.join(results_dir, "features.pt")
+        accuracies_path = os.path.join(results_dir, "accuracies.pt")
+        if os.path.exists(features_path):
+            os.remove(features_path)
+        if os.path.exists(accuracies_path):
+            os.remove(accuracies_path)
+        features = []
+        accuracies = []
+    else:
+        features = torch.load(os.path.join(results_dir, "features.pt"))
+        accuracies = torch.load(os.path.join(results_dir, "accuracies.pt")) 
+                    
     with ThreadPoolExecutor(len(DEVICES)) as executor:
         for i in range(0, n_architectures, len(DEVICES)):
             futures = []
@@ -184,29 +197,10 @@ def train_cnns_cifar10(
                 feature, accuracy = future.result()
                 features.append(feature)
                 accuracies.append(accuracy)
-    if save:
-        os.makedirs(results_dir, exist_ok=True)
+                if os.path.exists(features_path):
+                    os.remove(features_path)
+                if os.path.exists(accuracies_path):
+                    os.remove(accuracies_path)
 
-        if replace_if_existing:
-            # if feats and accuracies already exist, delete them and save the new data.
-            features_path = os.path.join(results_dir, "features.pt")
-            accuracies_path = os.path.join(results_dir, "accuracies.pt")
-            if os.path.exists(features_path):
-                os.remove(features_path)
-            if os.path.exists(accuracies_path):
-                os.remove(accuracies_path)
-
-        else:
-            # if feats and accuracies both exist, then append them to the current features and accuracies
-            if os.path.exists(os.path.join(results_dir, "features.pt")) and os.path.exists(
-                os.path.join(results_dir, "accuracies.pt")
-            ):
-                features = torch.load(os.path.join(results_dir, "features.pt")) + features
-                accuracies = (
-                    torch.load(os.path.join(results_dir, "accuracies.pt")) + accuracies
-                )
-
-        torch.save(features, os.path.join(results_dir, "features.pt"))
-        torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
-
-    return features, accuracies
+                torch.save(features, os.path.join(results_dir, "features.pt"))
+                torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))

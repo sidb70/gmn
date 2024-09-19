@@ -46,9 +46,6 @@ def generate_data():
     print("here's my gpu:")
     subprocess.run(["nvidia-smi", "--list-gpus"], check=True)
 
-    torch.manual_seed(0)
-    np.random.seed(0)
-
     start_time = time.time()
     n_architectures = 15
     train_random_cnns_hyperparams(

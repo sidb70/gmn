@@ -29,7 +29,7 @@ class RandHyperparamsConfig:
 
     # default values for the hyperparameters
     log_batch_size_range: Tuple[int, int] = (5, 11)
-    lr_range: Tuple[float, float] = (0.0001, 0.1)
+    lr_range: Tuple[float, float] = (0.0001, 0.07)
     n_epochs_range: Tuple[int, int] = (50, 150)
     momentum_range: Tuple[float, float] = (0.1, 0.9)
 
