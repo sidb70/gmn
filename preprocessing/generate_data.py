@@ -1,5 +1,6 @@
 import sys
 import os
+import concurrent.futures as cfutures
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from .hpo_configs import Hyperparameters, RandHyperparamsConfig
 from .get_cifar_data import get_cifar_data
@@ -171,12 +172,13 @@ def train_cnns_cifar10(
 
 
     os.makedirs(results_dir, exist_ok=True)
+    features_path = os.path.join(results_dir, "features.pt")
+    accuracies_path = os.path.join(results_dir, "accuracies.pt")
     if replace_if_existing \
-        or not os.path.exists(os.path.join(results_dir, "features.pt")) \
-        or not os.path.exists(os.path.join(results_dir, "accuracies.pt")):
+        or not os.path.exists(features_path) \
+        or not os.path.exists(accuracies_path):
         # if feats and accuracies already exist, delete them and save the new data.
-        features_path = os.path.join(results_dir, "features.pt")
-        accuracies_path = os.path.join(results_dir, "accuracies.pt")
+        
         if os.path.exists(features_path):
             os.remove(features_path)
         if os.path.exists(accuracies_path):
@@ -184,8 +186,8 @@ def train_cnns_cifar10(
         features = []
         accuracies = []
     else:
-        features = torch.load(os.path.join(results_dir, "features.pt"))
-        accuracies = torch.load(os.path.join(results_dir, "accuracies.pt")) 
+        features = torch.load(features_path)
+        accuracies = torch.load(accuracies_path)
                     
     with ThreadPoolExecutor(len(DEVICES)) as executor:
         for i in range(0, n_architectures, len(DEVICES)):
@@ -193,7 +195,7 @@ def train_cnns_cifar10(
             for j, hpo_config in enumerate(hyperparams[i:i+len(DEVICES)]):
                 futures.append(executor.submit(train_cifar_worker, i+j, hpo_config, random_cnn_config, DEVICES[j]))
 
-            for future in futures:
+            for future in cfutures.as_completed(futures):
                 feature, accuracy = future.result()
                 features.append(feature)
                 accuracies.append(accuracy)
@@ -202,5 +204,5 @@ def train_cnns_cifar10(
                 if os.path.exists(accuracies_path):
                     os.remove(accuracies_path)
 
-                torch.save(features, os.path.join(results_dir, "features.pt"))
-                torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
+                torch.save(features, features_path)
+                torch.save(accuracies, accuracies_path)
