@@ -17,9 +17,6 @@ class TestGenerateNNs(unittest.TestCase):
 
     # @unittest.skip("skip")
     def test_generate_random_cnn(self):
-        torch.manual_seed(0)
-        np.random.seed(0)
-
         cnn = generate_random_cnn(RandCNNConfig(n_conv_layers_range=(6,9), pool_after_conv=True))
         sample_input = torch.randn(1000, 3, 32, 32)
         output = cnn(sample_input)
@@ -37,8 +34,6 @@ class TestGenerateNNs(unittest.TestCase):
 
     # @unittest.skip("skip")
     def test_generate_random_mlp(self):
-        torch.manual_seed(0)
-        np.random.seed(0)
 
         mlp = generate_random_mlp(RandMLPConfig(in_dim=32, out_dim=10))
         sample_input = torch.randn(1000, 32)

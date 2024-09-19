@@ -40,9 +40,6 @@ def train_1_cnn():
     # copied from generate_data::train_cifar_worker
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    torch.manual_seed(0)
-    np.random.seed(0)
     hyperparams = RandHyperparamsConfig().sample()
     random_cnn_config = RandCNNConfig(
         n_conv_layers_range=(3,5),

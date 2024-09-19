@@ -19,8 +19,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 
-torch.manual_seed(0)
-np.random.seed(0)
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

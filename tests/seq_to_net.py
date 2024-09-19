@@ -97,9 +97,6 @@ class TestSeqToNet(unittest.TestCase):
 
     def test_random_cnns_to_net(self):
 
-        torch.manual_seed(0)
-        np.random.seed(0)
-
         for _ in range(10):
             cnn = generate_random_cnn(
                 RandCNNConfig(
