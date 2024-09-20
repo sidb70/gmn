@@ -17,8 +17,6 @@ class TestGenerateData(unittest.TestCase):
 
     def test_train_random_cnn(self):
 
-        torch.manual_seed(0)
-        np.random.seed(0)
 
         random_cnn_config = RandCNNConfig(
             n_classes=10,

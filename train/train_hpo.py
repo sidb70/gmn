@@ -13,9 +13,6 @@ from preprocessing.generate_data import generate_random_cnn
 from gmn_lim.model_arch_graph import seq_to_feats
 
 
-torch.manual_seed(0)
-random.seed(0)
-
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def train_epoch(model, feats, labels , batch_size, criterion, optimizer):
