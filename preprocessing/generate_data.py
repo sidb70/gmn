@@ -25,7 +25,7 @@ EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 print("Using devices", DEVICES)
 
 def train_random_cnns_hyperparams(
-    results_dir,
+    results_dir=None,
     n_architectures=10,
     random_cnn_config=RandCNNConfig(),
     random_hyperparams_config=RandHyperparamsConfig(),
@@ -46,9 +46,12 @@ def train_random_cnns_hyperparams(
         save=False,
     )
 
-    os.makedirs(results_dir, exist_ok=True)
-    torch.save(features, os.path.join(results_dir, "features.pt"))
-    torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
+    if results_dir is not None:
+        os.makedirs(results_dir, exist_ok=True)
+        torch.save(features, os.path.join(results_dir, "features.pt"))
+        torch.save(accuracies, os.path.join(results_dir, "accuracies.pt"))
+
+    return features, accuracies
 
 
 def train_cifar_worker(
