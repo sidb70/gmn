@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from preprocessing.generate_data import train_random_cnns_hyperparams
 from preprocessing.hpo_configs import RandHyperparamsConfig
 from config import n_architectures
-from resources.data import upload_torch_tensor
+from resources.data import upload_torch_tensor, upload_dataset
 import time
 
 if __name__ == "__main__":
@@ -18,10 +18,8 @@ if __name__ == "__main__":
 
     start_time = time.time()
     config = RandHyperparamsConfig(n_epochs_range=[50, 150])
-    features, accuracies = train_random_cnns_hyperparams("data/hpo", n_architectures=n_architectures)
+    result = train_random_cnns_hyperparams("data/hpo", n_architectures=n_architectures)
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
-    upload_torch_tensor(features, "hpo/features.pt")
-    upload_torch_tensor(accuracies, "hpo/accuracies.pt")
-
+    upload_dataset(*result, parent_dir="test-hpo")
 

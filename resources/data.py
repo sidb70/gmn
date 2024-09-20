@@ -16,7 +16,7 @@ def upload_file(from_path, to_path):
     service = ShareServiceClient.from_connection_string(conn_string)
     share = service.get_share_client('data')
 
-    # Split the directory path into parts (e.g., "some/parent/directory" -> ["some", "parent", "directory"])
+    # Split the directory path into parts (e.g., "some/parent/directory/tensor.pt" -> ["some", "parent", "directory", "tensor.pt"])
     parts = to_path.split('/')
     
     current_directory = share.get_directory_client('')
@@ -84,3 +84,15 @@ def upload_torch_tensor(tensor, to_path):
         torch.save(tensor, data)
         data.seek(0)
         file_client.upload_file(data)
+
+
+def upload_dataset(features, accuracies, parent_dir="base"):
+
+    features_dir = os.path.join(parent_dir, "features.pt")
+    accuracies_dir = os.path.join(parent_dir, "accuracies.pt")
+
+    upload_torch_tensor(features, features_dir)
+    upload_torch_tensor(accuracies, accuracies_dir)
+
+    
+
