@@ -21,8 +21,8 @@ if NUM_GPUS > 0:
 else:
     DEVICES = [torch.device('cpu')]
 
-#EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
-EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
+EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
+# EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 
 print("Using devices", DEVICES)
 
@@ -36,10 +36,6 @@ def train_random_cnns_hyperparams(
     """
     Generates and trains random CNNs, using random hyperparameters.
     """
-
-    features = []
-    accuracies = []
-
     hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]  
     print("Training with hyperparams", hyperparams)
 
@@ -133,7 +129,7 @@ def train_cifar_worker(
     print(f"\nAccuracy: {accuracy}")
     node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
     features= (node_feats, edge_indices, edge_feats, hpo_vec)
-    return features, accuracy
+    return features, accuracy, device
 
 
 def train_cnns_cifar10(
@@ -173,17 +169,18 @@ def train_cnns_cifar10(
 
     print(f"Training {len(hyperparams)} cnn(s) with hyperparameters {hyperparams}")
 
-                    
-    with ThreadPoolExecutor(len(DEVICES)) as executor:
-        for i in range(0, n_architectures, len(DEVICES)):
+    model_num=0
+    with EXECUTOR as executor:
+        while model_num < n_architectures:
             futures = []
-            for j, hpo_config in enumerate(hyperparams[i:i+len(DEVICES)]):
-                futures.append(executor.submit(train_cifar_worker, i+j, hpo_config, random_cnn_config, DEVICES[j]))
-
+            for i, hpo_config in enumerate(hyperparams[model_num:model_num+len(DEVICES)]):
+                futures.append(executor.submit(train_cifar_worker, model_num+i, hpo_config, random_cnn_config, DEVICES[i]))
+                model_num + 1
             for future in cfutures.as_completed(futures):
-
-                feature, accuracy = future.result()
-
+                feature, accuracy, free_device = future.result()
+                print("Freed device", free_device)
                 save_data_callback(feature, accuracy)
-                
-
+                model_num += 1
+                if model_num < n_architectures:
+                    futures.append(executor.submit(train_cifar_worker, model_num, hyperparams[model_num], random_cnn_config, free_device))
+        
