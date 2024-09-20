@@ -46,8 +46,8 @@ def train_save_locally():
     start_time = time.time()
 
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[1, 2])
-    result = train_random_cnns_hyperparams("data/hpo", 
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
+    train_random_cnns_hyperparams("data/hpo", 
                         n_architectures=n_architectures, 
                         random_hyperparams_config=random_hyperparams_config,
                         random_cnn_config = random_cnn_config, 
@@ -71,8 +71,8 @@ if __name__ == "__main__":
     start_time = time.time()
 
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[1, 2])
-    train_random_cnns_hyperparams("data/hpo", 
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
+    result = train_random_cnns_hyperparams("data/hpo", 
                         n_architectures=n_architectures, 
                         random_hyperparams_config=random_hyperparams_config,
                         random_cnn_config = random_cnn_config)
