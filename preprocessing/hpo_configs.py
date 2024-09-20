@@ -9,16 +9,16 @@ class Hyperparameters:
     Dataclass for hyperparameters to use for training HPO models.
     """
 
-    log_batch_size: int = 3
+    batch_size: int = 3
     lr: float = 0.01
     n_epochs: int = 1
     momentum: float = 0.5
 
     def to_vec(self):
-        return [self.log_batch_size ** 2, self.lr, self.n_epochs, self.momentum]
+        return [self.batch_size, self.lr, self.n_epochs, self.momentum]
 
     def __str__(self):
-        return f"batch_size: {self.log_batch_size**2}, lr: {self.lr}, n_epochs: {self.n_epochs}, momentum: {self.momentum}"
+        return f"batch_size: {self.batch_size}, lr: {self.lr}, n_epochs: {self.n_epochs}, momentum: {self.momentum}"
 
 
 @dataclass
@@ -38,7 +38,7 @@ class RandHyperparamsConfig:
         Samples hyperparameters from the configuration.
         """
         return Hyperparameters(
-            log_batch_size=np.random.randint(*self.log_batch_size_range),
+            batch_size=2**np.random.randint(*self.log_batch_size_range),
             lr=np.random.uniform(*self.lr_range),
             n_epochs=np.random.randint(*self.n_epochs_range),
             momentum=np.random.uniform(*self.momentum_range),

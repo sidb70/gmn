@@ -28,7 +28,7 @@ class TestGenerateData(unittest.TestCase):
         )
 
         hyperparams = Hyperparameters(
-            log_batch_size=4,
+            batch_size=4,
             lr=0.01,
             n_epochs=4,
             momentum=0.5,
@@ -39,7 +39,7 @@ class TestGenerateData(unittest.TestCase):
             log_hidden_fc_units_range=(2, 4),
         )
 
-        hyperparams = Hyperparameters(log_batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
+        hyperparams = Hyperparameters(batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
 
         save_dir = "data/hpo_test"
         train_cnns_cfira10(
@@ -68,7 +68,7 @@ class TestGenerateData(unittest.TestCase):
             log_hidden_channels_range=(2, 4), log_hidden_fc_units_range=(2, 4)
         )
 
-        hyperparams = Hyperparameters(log_batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
+        hyperparams = Hyperparameters(batch_size=3, lr=0.01, n_epochs=1, momentum=0.5)
 
         results_dir = "data/test"
         os.makedirs(results_dir, exist_ok=True)
