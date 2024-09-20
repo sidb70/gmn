@@ -17,8 +17,9 @@ if __name__ == "__main__":
     """
 
     start_time = time.time()
-    config = RandHyperparamsConfig(n_epochs_range=[50, 150])
-    result = train_random_cnns_hyperparams("data/hpo", n_architectures=n_architectures)
+    config = RandHyperparamsConfig(n_epochs_range=[1, 2])
+
+    result = train_random_cnns_hyperparams("data/hpo", n_architectures=n_architectures, random_hyperparams_config = config)
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
     upload_dataset(*result, parent_dir="test-hpo")
