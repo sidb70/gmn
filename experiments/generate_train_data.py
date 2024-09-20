@@ -13,7 +13,7 @@ import torch
 
 def train_save_locally():
 
-    results_dir = "data/hpo"
+    results_dir = "data/cnn_hpo"
 
     os.makedirs(results_dir, exist_ok=True)
 
@@ -28,6 +28,8 @@ def train_save_locally():
     else:
         accuracies = []
 
+    print("Loaded", len(features), "features and", len(accuracies), "accuracies")
+
     def save_locally_callback(feature, accuracy):
     
         features.append(feature)
@@ -39,6 +41,7 @@ def train_save_locally():
 
         torch.save(features, features_path)
         torch.save(accuracies, accuracies_path)
+        print("saved to {}".format(results_dir))
 
     start_time = time.time()
 
@@ -51,7 +54,7 @@ def train_save_locally():
                         save_data_callback=save_locally_callback)
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
-    upload_dataset(*result, parent_dir="test-hpo")
+    # upload_dataset(*result, parent_dir="test-hpo")
 
 
 if __name__ == "__main__":
