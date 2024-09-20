@@ -6,6 +6,7 @@ from .hpo_configs import Hyperparameters, RandHyperparamsConfig
 from .get_cifar_data import get_cifar_data
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from typing import Tuple
 import torch
 import torch.nn as nn
 from torch import optim
@@ -26,6 +27,7 @@ EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 print("Using devices", DEVICES)
 
 def train_random_cnns_hyperparams(
+
     results_dir,
     random_cnn_config: RandCNNConfig ,
     random_hyperparams_config: RandHyperparamsConfig,

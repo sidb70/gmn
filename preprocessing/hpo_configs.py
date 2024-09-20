@@ -15,7 +15,7 @@ class Hyperparameters:
     momentum: float = 0.5
 
     def to_vec(self):
-        return [self.log_batch_size, self.lr, self.n_epochs, self.momentum]
+        return [self.log_batch_size ** 2, self.lr, self.n_epochs, self.momentum]
 
     def __str__(self):
         return f"batch_size: {self.log_batch_size**2}, lr: {self.lr}, n_epochs: {self.n_epochs}, momentum: {self.momentum}"
