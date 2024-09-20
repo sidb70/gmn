@@ -27,9 +27,9 @@ EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 print("Using devices", DEVICES)
 
 def train_random_cnns_hyperparams(
-
     results_dir,
-    random_cnn_config: RandCNNConfig ,
+    save_data_callback: callable,
+    random_cnn_config: RandCNNConfig,
     random_hyperparams_config: RandHyperparamsConfig,
     n_architectures=10,
 ):
@@ -48,6 +48,7 @@ def train_random_cnns_hyperparams(
         hyperparams=hyperparams,
         random_cnn_config=random_cnn_config,
         save=False,
+        save_data_callback=save_data_callback,
     )
 
 
@@ -141,6 +142,7 @@ def train_cnns_cifar10(
     random_cnn_config=RandCNNConfig(n_classes=10),
     save=True,
     replace_if_existing=False,
+    save_data_callback=None,
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data
@@ -171,25 +173,6 @@ def train_cnns_cifar10(
 
     print(f"Training {len(hyperparams)} cnn(s) with hyperparameters {hyperparams}")
 
-
-
-    os.makedirs(results_dir, exist_ok=True)
-    features_path = os.path.join(results_dir, "features.pt")
-    accuracies_path = os.path.join(results_dir, "accuracies.pt")
-    if replace_if_existing \
-        or not os.path.exists(features_path) \
-        or not os.path.exists(accuracies_path):
-        # if feats and accuracies already exist, delete them and save the new data.
-        
-        if os.path.exists(features_path):
-            os.remove(features_path)
-        if os.path.exists(accuracies_path):
-            os.remove(accuracies_path)
-        features = []
-        accuracies = []
-    else:
-        features = torch.load(features_path)
-        accuracies = torch.load(accuracies_path)
                     
     with ThreadPoolExecutor(len(DEVICES)) as executor:
         for i in range(0, n_architectures, len(DEVICES)):
@@ -198,13 +181,9 @@ def train_cnns_cifar10(
                 futures.append(executor.submit(train_cifar_worker, i+j, hpo_config, random_cnn_config, DEVICES[j]))
 
             for future in cfutures.as_completed(futures):
-                feature, accuracy = future.result()
-                features.append(feature)
-                accuracies.append(accuracy)
-                if os.path.exists(features_path):
-                    os.remove(features_path)
-                if os.path.exists(accuracies_path):
-                    os.remove(accuracies_path)
 
-                torch.save(features, features_path)
-                torch.save(accuracies, accuracies_path)
+                feature, accuracy = future.result()
+
+                save_data_callback(feature, accuracy)
+                
+
