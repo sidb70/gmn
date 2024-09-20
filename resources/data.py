@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import io
 
+
 load_dotenv()
 
 conn_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
@@ -22,13 +23,10 @@ def upload_file(from_path, to_path):
     current_directory = share.get_directory_client('')
 
     for part in parts[:-1]:
-        # Move to the next sub-directory
         current_directory = current_directory.get_subdirectory_client(part)
         
         try:
-            # Try creating the sub-directory if it doesn't exist
             current_directory.create_directory()
-
         except ResourceExistsError:
             pass
 
@@ -94,5 +92,32 @@ def upload_dataset(features, accuracies, parent_dir="base"):
     upload_torch_tensor(features, features_dir)
     upload_torch_tensor(accuracies, accuracies_dir)
 
+
+
+def delete_file(file_path):
+    """
+    deletes the given file. if it doesn't exist, does nothing
+    if the directory is empty, it will also be deleted
+    """
     
+    service = ShareServiceClient.from_connection_string(conn_string)
+    share = service.get_share_client('data')
+    file_client = share.get_file_client(file_path)
+
+    try:
+        file_client.delete_file()
+    except:
+        pass
+
+    # Check if the directory is empty
+    parts = file_path.split('/')
+    current_directory = share.get_directory_client('')
+
+    for part in parts[:-1]:
+        current_directory = current_directory.get_subdirectory_client(part)
+
+    if len(list(current_directory.list_directories_and_files())) == 0:
+        current_directory.delete_directory()
+
+
 

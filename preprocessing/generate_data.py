@@ -5,6 +5,7 @@ from .hpo_configs import Hyperparameters, RandHyperparamsConfig
 from .get_cifar_data import get_cifar_data
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from typing import Tuple
 import torch
 import torch.nn as nn
 from torch import optim
@@ -29,7 +30,7 @@ def train_random_cnns_hyperparams(
     n_architectures=10,
     random_cnn_config=RandCNNConfig(),
     random_hyperparams_config=RandHyperparamsConfig(),
-):
+) -> Tuple[Tuple, Tuple]:
     """
     Generates and trains random CNNs, using random hyperparameters.
     """

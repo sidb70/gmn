@@ -12,3 +12,4 @@ black==24.8.0
 # azure-storage-blob
 # azure-identity
 azure-storage-file-share
+python-dotenv
