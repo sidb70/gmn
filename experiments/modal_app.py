@@ -75,7 +75,6 @@ def train_hpo_model():
     mpnn = train_hpo_mpnn(feats_train, labels_train)
 
 
-
 @app.local_entrypoint()
-def main():
+def main(): 
     train_one_cnn.remote()

@@ -27,23 +27,20 @@ EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 print("Using devices", DEVICES)
 
 def train_random_cnns_hyperparams(
-    results_dir,
-    save_data_callback: callable,
     random_cnn_config: RandCNNConfig,
     random_hyperparams_config: RandHyperparamsConfig,
     n_architectures=10,
+    results_dir: str=None,
+    save_data_callback: callable=lambda x: None,
 ):
     """
     Generates and trains random CNNs, using random hyperparameters.
     """
 
-    features = []
-    accuracies = []
-
     hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]  
     print("Training with hyperparams", hyperparams)
 
-    train_cnns_cifar10(
+    train_random_cnns_cifar10(
         results_dir='data/cnn_hpo/',
         hyperparams=hyperparams,
         random_cnn_config=random_cnn_config,
@@ -136,7 +133,7 @@ def train_cifar_worker(
     return features, accuracy
 
 
-def train_cnns_cifar10(
+def train_random_cnns_cifar10(
     results_dir,
     hyperparams=[Hyperparameters()],
     random_cnn_config=RandCNNConfig(n_classes=10),

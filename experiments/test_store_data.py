@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from resources.data import load_pt_file, upload_torch_tensor
+from resources.azure_files import load_pt_file, upload_torch_tensor
 import torch
 
 if __name__ == "__main__":
