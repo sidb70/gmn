@@ -170,17 +170,20 @@ def train_cnns_cifar10(
     print(f"Training {len(hyperparams)} cnn(s) with hyperparameters {hyperparams}")
 
     model_num=0
+    free_devices = DEVICES.copy()
     with EXECUTOR as executor:
+        futures = set()
         while model_num < n_architectures:
-            futures = []
-            for i, hpo_config in enumerate(hyperparams[model_num:model_num+len(DEVICES)]):
-                futures.append(executor.submit(train_cifar_worker, model_num+i, hpo_config, random_cnn_config, DEVICES[i]))
-                model_num + 1
-            for future in cfutures.as_completed(futures):
+            if len(futures) == 0:
+                for i, hpo_config in enumerate(hyperparams[model_num:model_num+len(free_devices)]):
+                    futures.add(executor.submit(train_cifar_worker, model_num, hpo_config, random_cnn_config, free_devices[i]))
+                    model_num += 1
+            for future in cfutures.as_completed(list(futures)):
                 feature, accuracy, free_device = future.result()
+                futures.remove(future)
                 print("Freed device", free_device)
                 save_data_callback(feature, accuracy)
-                model_num += 1
                 if model_num < n_architectures:
-                    futures.append(executor.submit(train_cifar_worker, model_num, hyperparams[model_num], random_cnn_config, free_device))
-        
+                    futures.add(executor.submit(train_cifar_worker, model_num, hyperparams[model_num], random_cnn_config, free_device))       
+                    model_num += 1
+
