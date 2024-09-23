@@ -41,7 +41,7 @@ def train_save_to_azure(base_dir='test-hpo', n_architectures=10):
 
 def train_save_locally():
 
-    results_dir = "data/hpo"
+    results_dir = "data/cnn_hpo"
 
     os.makedirs(results_dir, exist_ok=True)
 
@@ -56,6 +56,8 @@ def train_save_locally():
     else:
         accuracies = []
 
+    print("Loaded", len(features), "features and", len(accuracies), "accuracies")
+
     def save_locally_callback(feature, accuracy):
     
         features.append(feature)
@@ -67,19 +69,20 @@ def train_save_locally():
 
         torch.save(features, features_path)
         torch.save(accuracies, accuracies_path)
+        print("saved to {}".format(results_dir))
 
     start_time = time.time()
 
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[1, 2])
-    result = train_random_cnns_hyperparams("data/hpo", 
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
+    train_random_cnns_hyperparams("data/hpo", 
                         n_architectures=n_architectures, 
                         random_hyperparams_config=random_hyperparams_config,
                         random_cnn_config = random_cnn_config, 
                         save_data_callback=save_locally_callback)
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
-    upload_dataset(*result, parent_dir="test-hpo")
+    # upload_dataset(*result, parent_dir="test-hpo")
 
 
 if __name__ == "__main__":
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     start_time = time.time()
 
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[1, 2])
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
     result = train_random_cnns_hyperparams("data/hpo", 
                         n_architectures=n_architectures, 
                         random_hyperparams_config=random_hyperparams_config,
