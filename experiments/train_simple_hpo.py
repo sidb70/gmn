@@ -15,8 +15,6 @@ if __name__ == "__main__":
       torch.load(os.path.join(hpo_data_dir, "features.pt")), \
       torch.load(os.path.join(hpo_data_dir, "accuracies.pt"))
 
-
-
     train_simple_hpo(feats, labels)
 
 

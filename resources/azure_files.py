@@ -1,122 +1,187 @@
-from azure.core.exceptions import ResourceExistsError
-from azure.storage.fileshare import ShareServiceClient
-import torch
-
-from dotenv import load_dotenv
-
 import os
 import io
+from dotenv import load_dotenv
+
+import torch
+from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
+from azure.storage.fileshare import ShareServiceClient, ShareDirectoryClient
+from preprocessing.types import HPOFeatures
+from typing import Tuple, List
+
+from preprocessing.types import HPODataset
+
+from abc import ABC, abstractmethod
 
 
-load_dotenv()
 
-conn_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 
-def upload_file(from_path, to_path):
 
-    service = ShareServiceClient.from_connection_string(conn_string)
-    share = service.get_share_client('data')
+AZURE_FILESHARE_NAME = "data"
 
-    # Split the directory path into parts (e.g., "some/parent/directory/tensor.pt" -> ["some", "parent", "directory", "tensor.pt"])
-    parts = to_path.split('/')
-    
-    current_directory = share.get_directory_client('')
+class AzureDatasetClient():
+    """
+    Utility class for interacting with an HPO dataset stored in an Azure Storage Account.
+    """
 
-    for part in parts[:-1]:
-        current_directory = current_directory.get_subdirectory_client(part)
+    def __init__(self, base_dir=""):
+        load_dotenv()
+        conn_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+
+        self.base_dir = base_dir
+        self.features_filename = "features.pt"
+        self.accuracies_filename = "accuracies.pt"
+
+        self.service = ShareServiceClient.from_connection_string(conn_string)
+        self.share = self.service.get_share_client(AZURE_FILESHARE_NAME)
+
+
+    def _get_file_client(self, relative_path: str):
+        """
+        Given a relative path to a file from self.base_dir, 
+        ensures all subdirectories exist and return its directory and file client.
+        """
+
+        parts = os.path.join(self.base_dir, relative_path).split("/")
+        print("parts", parts)
+        current_directory = self.share.get_directory_client("")
+
+        for part in parts[:-1]:
+            print("part", part)
+            current_directory = current_directory.get_subdirectory_client(part)
+
+            try:
+                current_directory.create_directory()
+            except ResourceExistsError:
+                pass
         
+        file_client = current_directory.get_file_client(parts[-1])
+        return file_client
+
+
+    def _copy_file_to_azure(self, from_path: str, relative_to_path: str):
+        """
+        Upload a file to the specified path (relative to the client's base path) in azure files.
+
+        Args:
+          - from_path (str): The local file path to upload the file from.
+          - relative_to_path (str): The file path in the azure storage account to upload the file to, 
+                (relative to the client's base path)
+        """
+
+        file_client = self._get_file_client(relative_to_path)
+
+        with open(from_path, "rb") as data:
+            file_client.upload_file(data)
+
+
+    def _save_torch_object(self, obj: object, relative_to_path: str):
+        """
+        Upload a torch tensor to the specified path in the azure storage account.
+        Replaces the file with the newly saved pytorch object.
+        """
+
+        file_client = self._get_file_client(relative_to_path)
+
+        print('saving to', file_client.file_path)
+
+        with io.BytesIO() as data:
+            torch.save(obj, data)
+            data.seek(0)
+            file_client.upload_file(data)
+
+    async def _async_save_torch_object(self, obj: object, relative_to_path: str):
+        self._save_torch_object(obj, relative_to_path)
+
+
+    def _fetch_pt_file(self, relative_from_path: str):
+        """
+        Download a .pt file from the specified path as a pytorch object and return it.
+        From_path must be a path to a .pt file in the azure storage account
+
+        Args:
+            from_path (str): The path to the file to download, relative to the base directory.
+
+        Returns:
+            The pytorch object stored in the file.
+        """
+
+        file_client = self._get_file_client(relative_from_path)
+        file_bytes = file_client.download_file().readall()
+        file_bytes = io.BytesIO(file_bytes)
+        return torch.load(file_bytes)
+
+
+
+    def upload_dataset(
+        self, features: HPOFeatures, accuracies: List[float], append=False
+    ):
+        """
+        Uploads the dataset consisting of features and accuracies to the specified parent directory.
+
+        Args:
+            features (HPOFeatures): The features to be uploaded.
+            accuracies (List[float]): The accuracies to be uploaded.
+            append (bool, optional): If True, the new data will be appended to the existing data.
+                Otherwise, the existing data will be overwritten.
+
+        Returns:
+            None
+        """
+
+        self._save_torch_object(features, self.features_filename)
+        self._save_torch_object(accuracies, self.accuracies_filename)
+
+    async def aupload_dataset(
+        self, features: HPOFeatures, accuracies: List[float]
+    ):
+        self.upload_dataset(features, accuracies)
+
+    def fetch_dataset(self) -> HPODataset:
+        """
+        Returns the HPO dataset stored in the base directory.
+        Defaults to an empty dataset if no data is found.
+        """
+
         try:
-            current_directory.create_directory()
-        except ResourceExistsError:
+            features = [HPOFeatures(*feats) for feats in self._fetch_pt_file(self.features_filename)]
+            accuracies = self._fetch_pt_file(self.accuracies_filename)
+        except ResourceNotFoundError:
+            features, accuracies = [], []
+
+        return (features, accuracies)
+
+    def _delete_file(self, relative_file_path: str):
+        """
+        deletes the given file. if it doesn't exist, does nothing
+        """
+
+        file_client = self._get_file_client(relative_file_path)
+
+        try:
+            print("to delete: ", file_client.file_path, file_client.file_name)
+            file_client.delete_file()
+        except ResourceNotFoundError:
             pass
 
-    file_client = current_directory.get_file_client(parts[-1])
+    def _delete_directory(self, relative_dir_path: str =""):
+        """
+        deletes the given directory. if it doesn't exist or is nonempty, does nothing
+        """
 
-    with open(from_path, 'rb') as data:
-        file_client.upload_file(data)
+        dir_client = self.share.get_directory_client(os.path.join(self.base_dir, relative_dir_path))
 
-
-def load_pt_file(from_path):
-    """
-    download a .pt file from the specified path and convert it to a pytorch object, returns it
-
-    from_path must be a path to a .pt file in the azure storage account
-    """
-
-    service = ShareServiceClient.from_connection_string(conn_string)
-    share = service.get_share_client('data')
-    file_client = share.get_file_client(from_path)
-    
-    file_bytes = file_client.download_file().readall()
-    file_bytes = io.BytesIO(file_bytes)
-    return torch.load(file_bytes)
-
-
-def upload_torch_tensor(tensor, to_path):
-    """
-    Upload a torch tensor to the specified path in the azure storage account
-    """
-
-    service = ShareServiceClient.from_connection_string(conn_string)
-    share = service.get_share_client('data')
-
-    # Split the directory path into parts (e.g., "some/parent/directory" -> ["some", "parent", "directory"])
-    parts = to_path.split('/')
-    
-    current_directory = share.get_directory_client('')
-
-    for part in parts[:-1]:
-        # Move to the next sub-directory
-        current_directory = current_directory.get_subdirectory_client(part)
-        
         try:
-            # Try creating the sub-directory if it doesn't exist
-            current_directory.create_directory()
-
-        except ResourceExistsError:
+            dir_client.delete_directory()
+        except ResourceNotFoundError:
             pass
 
-    file_client = current_directory.get_file_client(parts[-1])
+    def delete_dataset(self):
+        """
+        deletes the accuracies and features files in the base directory
+        if the directory is empty, it will also be deleted
+        """
 
-    with io.BytesIO() as data:
-        torch.save(tensor, data)
-        data.seek(0)
-        file_client.upload_file(data)
+        for filename in [self.features_filename, self.accuracies_filename]:
+            self._delete_file(filename)
 
-
-def upload_dataset(features, accuracies, parent_dir="base"):
-
-    features_dir = os.path.join(parent_dir, "features.pt")
-    accuracies_dir = os.path.join(parent_dir, "accuracies.pt")
-
-    upload_torch_tensor(features, features_dir)
-    upload_torch_tensor(accuracies, accuracies_dir)
-
-
-def delete_file(file_path):
-    """
-    deletes the given file. if it doesn't exist, does nothing
-    if the directory is empty, it will also be deleted
-    """
-    
-    service = ShareServiceClient.from_connection_string(conn_string)
-    share = service.get_share_client('data')
-    file_client = share.get_file_client(file_path)
-
-    try:
-        file_client.delete_file()
-    except:
-        pass
-
-    # Check if the directory is empty
-    parts = file_path.split('/')
-    current_directory = share.get_directory_client('')
-
-    for part in parts[:-1]:
-        current_directory = current_directory.get_subdirectory_client(part)
-
-    if len(list(current_directory.list_directories_and_files())) == 0:
-        current_directory.delete_directory()
-
-
-
+        self._delete_directory()

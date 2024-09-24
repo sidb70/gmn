@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .hpo_configs import RandCNNConfig, RandMLPConfig
+from .types import RandCNNConfig, RandMLPConfig
 
 
 class Flatten(nn.Module):

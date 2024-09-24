@@ -1,7 +1,10 @@
 from dataclasses import dataclass
-from typing import Tuple
+from typing import NamedTuple, Tuple, List
+import torch
 import numpy as np
 
+
+HPOvec = List[int | float]
 
 @dataclass
 class Hyperparameters:
@@ -14,7 +17,7 @@ class Hyperparameters:
     n_epochs: int = 1
     momentum: float = 0.5
 
-    def to_vec(self):
+    def to_vec(self) -> HPOvec:
         return [self.batch_size, self.lr, self.n_epochs, self.momentum]
 
     def __str__(self):
@@ -65,3 +68,20 @@ class RandMLPConfig:
     out_dim: int = 10
     n_layers_range: Tuple[int, int] = (2, 4)
     log_hidden_units_range: Tuple[int, int] = (4, 8) # n hidden units = 2^sampled value
+
+
+class HPOFeatures(NamedTuple):
+    """
+    Feats for the prameter graph of one architecture 
+    and the hyperparameters used to train it.
+    """
+    node_feats: torch.Tensor
+    edge_indices: torch.Tensor
+    edge_feats: torch.Tensor
+    hpo_vec: List[int | float]
+
+
+HPODataset = Tuple[
+    List[HPOFeatures],
+    List[float] # accuracies
+]

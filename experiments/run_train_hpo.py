@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import torch
 import shutil
 from preprocessing.generate_data import train_random_cnns_hyperparams
-from preprocessing.hpo_configs import RandHyperparamsConfig, RandCNNConfig
+from preprocessing.types import RandHyperparamsConfig, RandCNNConfig
 from train.utils import split
 from train.train_hpo2 import train_hpo_mpnn
 

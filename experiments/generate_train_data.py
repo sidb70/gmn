@@ -4,38 +4,40 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from preprocessing.generate_data import train_random_cnns_hyperparams
-from preprocessing.hpo_configs import RandHyperparamsConfig, RandCNNConfig
+from preprocessing.types import RandHyperparamsConfig, RandCNNConfig
+from preprocessing.types import HPOFeatures
 from config import n_architectures
-from resources.azure_files import upload_torch_tensor, upload_dataset, load_pt_file
+from resources.azure_files import AzureDatasetClient
 from azure.core.exceptions import ResourceNotFoundError
 import time
 import torch
 
 
-def train_save_to_azure(base_dir='test-hpo', n_architectures=10):
+def train_save_to_azure(client: AzureDatasetClient, n_architectures=10):
 
     try:
-        features = load_pt_file(os.path.join(base_dir, 'features.pt'))
-        accuracies = load_pt_file(os.path.join(base_dir, 'accuracies.pt'))
+        features, accuracies = client.fetch_dataset()
     except ResourceNotFoundError:
         features, accuracies = [], []
 
-    def save_to_azure_callback(feature, accuracy):
-        
+    def save_to_azure_callback(feature: HPOFeatures, accuracy: float, model_idx: int):
         features.append(feature)
-        print('appending new feature to existing_features', len(features))
         accuracies.append(accuracy)
-
-        upload_torch_tensor(features, os.path.join(base_dir, 'features.pt'))
-        upload_torch_tensor(accuracies, os.path.join(base_dir, 'accuracies.pt'))
+        print(model_idx, n_architectures)
+        if (model_idx + 1) % 100 == 0:
+            client.upload_dataset(features, accuracies)
 
     random_cnn_config = RandCNNConfig()
     random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[1, 2])
-    result = train_random_cnns_hyperparams( 
-                        n_architectures=n_architectures,
-                        random_hyperparams_config=random_hyperparams_config,
-                        random_cnn_config = random_cnn_config,
-                        save_data_callback=save_to_azure_callback)
+
+    train_random_cnns_hyperparams(
+        random_cnn_config=random_cnn_config,
+        random_hyperparams_config=random_hyperparams_config,
+        n_architectures=n_architectures,
+        save_data_callback=save_to_azure_callback,
+    )
+
+    client.upload_dataset(features, accuracies)
 
 
 
@@ -106,4 +108,3 @@ if __name__ == "__main__":
                         random_cnn_config = random_cnn_config)
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
-    upload_dataset(*result, parent_dir="test-hpo")
