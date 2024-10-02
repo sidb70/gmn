@@ -4,19 +4,19 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from preprocessing.generate_data import train_random_cnns_hyperparams
-from preprocessing.types import RandHyperparamsConfig, RandCNNConfig
-from preprocessing.types import HPOFeatures
-from config import n_architectures
-from resources.azure_files import AzureDatasetClient
+from preprocessing.hpo_configs import RandHyperparamsConfig, RandCNNConfig
+from config import n_architectures, n_epochs_range
+from resources.azure_files import upload_torch_tensor, upload_dataset, load_pt_file
 from azure.core.exceptions import ResourceNotFoundError
 import time
 import torch
 
 
-def train_save_to_azure(client: AzureDatasetClient, n_architectures=10):
-
+def train_save_to_azure(base_dir='cnn_hpo', n_architectures=n_architectures):
     try:
-        features, accuracies = client.fetch_dataset()
+        features = load_pt_file(os.path.join(base_dir, 'features.pt'))
+        accuracies = load_pt_file(os.path.join(base_dir, 'accuracies.pt'))
+        print("Loaded", len(features), "features and", len(accuracies), "accuracies")
     except ResourceNotFoundError:
         features, accuracies = [], []
 
@@ -28,16 +28,12 @@ def train_save_to_azure(client: AzureDatasetClient, n_architectures=10):
             client.upload_dataset(features, accuracies)
 
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[1, 2])
-
-    train_random_cnns_hyperparams(
-        random_cnn_config=random_cnn_config,
-        random_hyperparams_config=random_hyperparams_config,
-        n_architectures=n_architectures,
-        save_data_callback=save_to_azure_callback,
-    )
-
-    client.upload_dataset(features, accuracies)
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
+    result = train_random_cnns_hyperparams( 
+                        n_architectures=n_architectures,
+                        random_hyperparams_config=random_hyperparams_config,
+                        random_cnn_config = random_cnn_config,
+                        save_data_callback=save_to_azure_callback)
 
 
 
@@ -76,12 +72,14 @@ def train_save_locally():
     start_time = time.time()
 
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
-    train_random_cnns_hyperparams("data/hpo", 
-                        n_architectures=n_architectures, 
-                        random_hyperparams_config=random_hyperparams_config,
-                        random_cnn_config = random_cnn_config, 
-                        save_data_callback=save_locally_callback)
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
+    train_random_cnns_hyperparams(
+                        random_cnn_config =  random_cnn_config,
+                        random_hyperparams_config = random_hyperparams_config,
+                        n_architectures=n_architectures,
+                        results_dir = results_dir,
+                        save_data_callback = save_locally_callback,
+                    )
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
     # upload_dataset(*result, parent_dir="test-hpo")
@@ -95,16 +93,18 @@ if __name__ == "__main__":
     """
 
     train_save_locally()
+    # train_save_to_azure(n_architectures = n_architectures)
     exit(0)
 
 
-    start_time = time.time()
+    # start_time = time.time()
 
-    random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
-    result = train_random_cnns_hyperparams("data/hpo", 
-                        n_architectures=n_architectures, 
-                        random_hyperparams_config=random_hyperparams_config,
-                        random_cnn_config = random_cnn_config)
-    print(f"Time taken: {time.time() - start_time:.2f} seconds.")
+    # random_cnn_config = RandCNNConfig()
+    # random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
+    # result = train_random_cnns_hyperparams("data/hpo", 
+    #                     n_architectures=n_architectures, 
+    #                     random_hyperparams_config=random_hyperparams_config,
+    #                     random_cnn_config = random_cnn_config)
+    # print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
+    # upload_dataset(*result, parent_dir="test-hpo")
