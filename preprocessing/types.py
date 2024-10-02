@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import NamedTuple, Tuple, List
+from typing import NamedTuple, Tuple, List, Union
 import torch
 import numpy as np
 
 
-HPOvec = List[int | float]
+HPOvec = List[Union[int , float]]
 
 @dataclass
 class Hyperparameters:
@@ -78,7 +78,7 @@ class HPOFeatures(NamedTuple):
     node_feats: torch.Tensor
     edge_indices: torch.Tensor
     edge_feats: torch.Tensor
-    hpo_vec: List[int | float]
+    hpo_vec: HPOvec
 
 
 HPODataset = Tuple[
