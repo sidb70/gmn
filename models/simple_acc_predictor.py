@@ -5,7 +5,7 @@ import torch.nn as nn
 class AccuracyPredictor(nn.Module):
     """
     To benchmark the GMN,
-    Simple neural network to predict accuracy from just hyperparameters and  
+    Simple neural network to predict accuracy from just hyperparameters and
     """
 
     def __init__(self, input_dim, hidden_dim):

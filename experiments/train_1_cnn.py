@@ -8,7 +8,11 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-from preprocessing.generate_data import generate_random_cnn, RandHyperparamsConfig, RandCNNConfig
+from preprocessing.generate_data import (
+    generate_random_cnn,
+    RandHyperparamsConfig,
+    RandCNNConfig,
+)
 from preprocessing.generate_data import get_cifar_data
 import matplotlib.pyplot as plt
 
@@ -33,6 +37,7 @@ Sequential(
 )
 """
 
+
 def train_1_cnn():
 
     # train the cnn, plot train and validation loss curve.
@@ -42,8 +47,8 @@ def train_1_cnn():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     hyperparams = RandHyperparamsConfig().sample()
     random_cnn_config = RandCNNConfig(
-        n_conv_layers_range=(3,5),
-        n_fc_layers_range=(3,5),
+        n_conv_layers_range=(3, 5),
+        n_fc_layers_range=(3, 5),
         pool_after_conv=True,
     )
 
@@ -52,11 +57,13 @@ def train_1_cnn():
 
     print(hpo_vec)
 
-    n_epochs=10
-    batch_size=16
+    n_epochs = 10
+    batch_size = 16
     lr = 0.0005
 
-    trainloader, testloader = get_cifar_data(data_dir='./data/', device=torch.device(device), batch_size=batch_size)
+    trainloader, testloader = get_cifar_data(
+        data_dir="./data/", device=torch.device(device), batch_size=batch_size
+    )
 
     cnn = generate_random_cnn(random_cnn_config).to(device)
     print(cnn)
@@ -81,7 +88,7 @@ def train_1_cnn():
             outputs = cnn(inputs).reshape(-1, 10)
             labels = labels.reshape(-1)
             assert labels.shape[0] > 0
-            assert torch.min(labels) >= 0 
+            assert torch.min(labels) >= 0
             assert torch.max(labels) < 10
             try:
                 loss = criterion(outputs, labels)
@@ -93,12 +100,13 @@ def train_1_cnn():
 
             running_loss += loss.item()
 
-            if (k+1) % 50 == 0 or k == len(trainloader) - 1:
-                running_loss_batches = 50 if (k+1) % 50 == 0 else (k+1) % 50
+            if (k + 1) % 50 == 0 or k == len(trainloader) - 1:
+                running_loss_batches = 50 if (k + 1) % 50 == 0 else (k + 1) % 50
 
                 avg_running_loss = running_loss / running_loss_batches
                 print(
-                    f"\rTraining one cnn. {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Running Loss: {avg_running_loss:.3f}",end=""
+                    f"\rTraining one cnn. {n_params} params, Epoch {j+1}/{n_epochs}, Batch {k+1}/{len(trainloader)}, Running Loss: {avg_running_loss:.3f}",
+                    end="",
                 )
                 running_losses.append(avg_running_loss)
                 batch_nums.append(j * len(trainloader) + k)
@@ -127,9 +135,10 @@ def train_1_cnn():
     plt.plot(epoch_nums, running_losses)
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
-    plt.title(f"n params: {n_params}, batch size: {batch_size}, lr: {lr}, n epochs: {n_epochs}")
+    plt.title(
+        f"n params: {n_params}, batch size: {batch_size}, lr: {lr}, n epochs: {n_epochs}"
+    )
     plt.savefig("../data/train_loss_curve.png")
-
 
 
 if __name__ == "__main__":

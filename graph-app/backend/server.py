@@ -14,14 +14,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/plot/{graph_id}", response_class=HTMLResponse)
 def get_plot(graph_id: int):
-    if not os.path.exists(f'./backend/static/graph{graph_id}.html'):
-        return 'Graph not found'
-    with open(f'./backend/static/graph{graph_id}.html', 'r') as file:
+    if not os.path.exists(f"./backend/static/graph{graph_id}.html"):
+        return "Graph not found"
+    with open(f"./backend/static/graph{graph_id}.html", "r") as file:
         html_content = file.read()
     return html_content
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

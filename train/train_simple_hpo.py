@@ -2,6 +2,7 @@ import sys
 import os
 
 from models.simple_acc_predictor import AccuracyPredictor
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
@@ -28,17 +29,17 @@ def train_simple_hpo(features, accuracies):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(10):
-          
-          for i in range(len(simple_features)):
-              x = torch.tensor(simple_features[i], dtype=torch.float32)
-              y = torch.tensor(accuracies[i])
-  
-              optimizer.zero_grad()
-              output = model(x)
-              loss = criterion(output, y)
-              loss.backward()
-              optimizer.step()
-  
-              print(f"Epoch {epoch}, Loss: {loss}")
+
+        for i in range(len(simple_features)):
+            x = torch.tensor(simple_features[i], dtype=torch.float32)
+            y = torch.tensor(accuracies[i])
+
+            optimizer.zero_grad()
+            output = model(x)
+            loss = criterion(output, y)
+            loss.backward()
+            optimizer.step()
+
+            print(f"Epoch {epoch}, Loss: {loss}")
 
     return model

@@ -105,7 +105,6 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
     return nn.Sequential(*layers)
 
 
-
 def generate_random_mlp(config=RandMLPConfig()) -> nn.Sequential:
     """
     Generates an MLP with varying linear layers and varying hidden units in each layer.

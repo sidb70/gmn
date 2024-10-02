@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
@@ -9,14 +10,13 @@ import shutil
 from preprocessing.generate_data import (
     train_cnns_cfira10,
     Hyperparameters,
-    RandCNNConfig
+    RandCNNConfig,
 )
 
 
 class TestGenerateData(unittest.TestCase):
 
     def test_train_random_cnn(self):
-
 
         random_cnn_config = RandCNNConfig(
             n_classes=10,
@@ -35,7 +35,7 @@ class TestGenerateData(unittest.TestCase):
         )
 
         random_cnn_config = RandCNNConfig(
-            log_hidden_channels_range=(2, 4), 
+            log_hidden_channels_range=(2, 4),
             log_hidden_fc_units_range=(2, 4),
         )
 
@@ -54,7 +54,6 @@ class TestGenerateData(unittest.TestCase):
         accuracies = torch.load(os.path.join(save_dir, "accuracies.pt"))
 
         shutil.rmtree(save_dir)
-
 
     @unittest.skip("skip")
     def test_train_cnns(self):
@@ -90,7 +89,6 @@ class TestGenerateData(unittest.TestCase):
         self.assertEqual(feats[0][0].shape[1], 3)
         self.assertEqual(feats[0][1].shape[1], feats[0][2].shape[0])
         self.assertEqual(len(labels), n_architectures)
-
 
 
 if __name__ == "__main__":

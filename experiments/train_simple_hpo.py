@@ -11,11 +11,8 @@ if __name__ == "__main__":
 
     hpo_data_dir = "data/hpo"
 
-    feats, labels = \
-      torch.load(os.path.join(hpo_data_dir, "features.pt")), \
-      torch.load(os.path.join(hpo_data_dir, "accuracies.pt"))
+    feats, labels = torch.load(os.path.join(hpo_data_dir, "features.pt")), torch.load(
+        os.path.join(hpo_data_dir, "accuracies.pt")
+    )
 
     train_simple_hpo(feats, labels)
-
-
-    

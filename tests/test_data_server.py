@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
@@ -7,8 +8,10 @@ import numpy as np
 import unittest
 from experiments.generate_train_data import train_save_to_azure
 from azure.core.exceptions import ResourceNotFoundError
+
 # from resources import azure_files
 from resources import AzureDatasetClient
+
 
 class TestGenerateData(unittest.TestCase):
 
@@ -19,7 +22,7 @@ class TestGenerateData(unittest.TestCase):
 
         tensors = [torch.rand(n, n, 1) for n in range(1, 100)]
 
-        path = 'test/tensor.pt'
+        path = "test/tensor.pt"
 
         client._save_torch_object(tensors, path)
 
@@ -50,6 +53,5 @@ class TestGenerateData(unittest.TestCase):
         self.assertGreater(len(features), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-

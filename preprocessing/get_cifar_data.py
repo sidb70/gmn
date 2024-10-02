@@ -3,6 +3,7 @@ import os
 import torch
 import torchvision
 from typing import List
+
 if use_ffcv:
     print("Using ffcv")
     from .write_ffcv_data import cifar_10_to_beton
@@ -17,6 +18,7 @@ else:
 
     from torchvision import transforms
     from torchvision.datasets import CIFAR10
+
 
 def get_cifar_data(data_dir, device, batch_size, num_workers=1):
     if use_ffcv:

@@ -18,16 +18,25 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-'''
-https://github.com/NVlabs/Forecasting-Model-Search/blob/master/experiments/gmn/encoders.py'''
+"""
+https://github.com/NVlabs/Forecasting-Model-Search/blob/master/experiments/gmn/encoders.py"""
 
 import math
 import torch
 import torch.nn as nn
 from .constants import NODE_TYPES, EDGE_TYPES
 
+
 class NodeEdgeFeatEncoder(nn.Module):
-    def __init__(self, hidden_dim, norms=False, post_activation=True, ff=False, ff_scale=3, use_conv=True):
+    def __init__(
+        self,
+        hidden_dim,
+        norms=False,
+        post_activation=True,
+        ff=False,
+        ff_scale=3,
+        use_conv=True,
+    ):
         super().__init__()
 
         self.norms = norms
@@ -39,29 +48,39 @@ class NodeEdgeFeatEncoder(nn.Module):
             self.node_layer_encoder = nn.Sequential(nn.Linear(1, hidden_dim), Sin())
             self.neuron_num_encoder = nn.Sequential(nn.Linear(1, hidden_dim), Sin())
         else:
-            self.node_layer_encoder = GaussianFourierFeatures(1, hidden_dim, scale=ff_scale)
-            self.neuron_num_encoder = GaussianFourierFeatures(1, hidden_dim, scale=ff_scale)
+            self.node_layer_encoder = GaussianFourierFeatures(
+                1, hidden_dim, scale=ff_scale
+            )
+            self.neuron_num_encoder = GaussianFourierFeatures(
+                1, hidden_dim, scale=ff_scale
+            )
         self.node_type_encoder = nn.Embedding(len(NODE_TYPES), hidden_dim)
-        self.x_proj = nn.Linear(3*hidden_dim, hidden_dim)
+        self.x_proj = nn.Linear(3 * hidden_dim, hidden_dim)
         if norms:
-            self.x_norm = nn.LayerNorm(3*hidden_dim)
+            self.x_norm = nn.LayerNorm(3 * hidden_dim)
 
         # edge encoders
         if not ff:
             self.weight_encoder = nn.Sequential(nn.Linear(1, hidden_dim), Sin())
             self.edge_layer_encoder = nn.Sequential(nn.Linear(1, hidden_dim), Sin())
-            if use_conv: self.conv_pos_encoder = nn.Sequential(nn.Linear(3, hidden_dim), Sin())
+            if use_conv:
+                self.conv_pos_encoder = nn.Sequential(nn.Linear(3, hidden_dim), Sin())
         else:
             self.weight_encoder = GaussianFourierFeatures(1, hidden_dim, scale=ff_scale)
-            self.edge_layer_encoder = GaussianFourierFeatures(1, hidden_dim, scale=ff_scale)
-            if use_conv: self.conv_pos_encoder = GaussianFourierFeatures(3, hidden_dim, scale=ff_scale)
+            self.edge_layer_encoder = GaussianFourierFeatures(
+                1, hidden_dim, scale=ff_scale
+            )
+            if use_conv:
+                self.conv_pos_encoder = GaussianFourierFeatures(
+                    3, hidden_dim, scale=ff_scale
+                )
 
         self.edge_type_encoder = nn.Embedding(len(EDGE_TYPES), hidden_dim)
-        edge_proj_dim = 4*hidden_dim if use_conv else 3*hidden_dim
+        edge_proj_dim = 4 * hidden_dim if use_conv else 3 * hidden_dim
         self.edge_attr_proj = nn.Linear(edge_proj_dim, hidden_dim)
         if norms:
             self.edge_attr_norm = nn.LayerNorm(edge_proj_dim)
-        
+
         if post_activation:
             self.activation = nn.ReLU()
 
@@ -73,7 +92,6 @@ class NodeEdgeFeatEncoder(nn.Module):
         if self.norms:
             x = self.x_norm(x)
         x = self.x_proj(x)
-        
 
         e0 = self.weight_encoder(edge_attr[:, 0].unsqueeze(-1))
         e1 = self.edge_layer_encoder(edge_attr[:, 1].unsqueeze(-1))
@@ -93,14 +111,17 @@ class NodeEdgeFeatEncoder(nn.Module):
 
         return x, edge_attr
 
+
 class Sin(nn.Module):
-    def forward(self, x): return torch.sin(x)
+    def forward(self, x):
+        return torch.sin(x)
+
 
 class GaussianFourierFeatures(nn.Module):
     def __init__(self, in_dim, out_dim, scale=3):
         super().__init__()
         self.scale = scale
-        self.register_buffer('_weight', torch.randn((in_dim, out_dim//2)) * scale)
+        self.register_buffer("_weight", torch.randn((in_dim, out_dim // 2)) * scale)
 
     def forward(self, x):
         x = x @ self._weight

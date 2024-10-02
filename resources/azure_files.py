@@ -13,12 +13,10 @@ from preprocessing.types import HPODataset
 from abc import ABC, abstractmethod
 
 
-
-
-
 AZURE_FILESHARE_NAME = "data"
 
-class AzureDatasetClient():
+
+class AzureDatasetClient:
     """
     Utility class for interacting with an HPO dataset stored in an Azure Storage Account.
     """
@@ -34,10 +32,9 @@ class AzureDatasetClient():
         self.service = ShareServiceClient.from_connection_string(conn_string)
         self.share = self.service.get_share_client(AZURE_FILESHARE_NAME)
 
-
     def _get_file_client(self, relative_path: str):
         """
-        Given a relative path to a file from self.base_dir, 
+        Given a relative path to a file from self.base_dir,
         ensures all subdirectories exist and return its directory and file client.
         """
 
@@ -53,10 +50,9 @@ class AzureDatasetClient():
                 current_directory.create_directory()
             except ResourceExistsError:
                 pass
-        
+
         file_client = current_directory.get_file_client(parts[-1])
         return file_client
-
 
     def _copy_file_to_azure(self, from_path: str, relative_to_path: str):
         """
@@ -64,7 +60,7 @@ class AzureDatasetClient():
 
         Args:
           - from_path (str): The local file path to upload the file from.
-          - relative_to_path (str): The file path in the azure storage account to upload the file to, 
+          - relative_to_path (str): The file path in the azure storage account to upload the file to,
                 (relative to the client's base path)
         """
 
@@ -72,7 +68,6 @@ class AzureDatasetClient():
 
         with open(from_path, "rb") as data:
             file_client.upload_file(data)
-
 
     def _save_torch_object(self, obj: object, relative_to_path: str):
         """
@@ -82,7 +77,7 @@ class AzureDatasetClient():
 
         file_client = self._get_file_client(relative_to_path)
 
-        print('saving to', file_client.file_path)
+        print("saving to", file_client.file_path)
 
         with io.BytesIO() as data:
             torch.save(obj, data)
@@ -91,7 +86,6 @@ class AzureDatasetClient():
 
     async def _async_save_torch_object(self, obj: object, relative_to_path: str):
         self._save_torch_object(obj, relative_to_path)
-
 
     def _fetch_pt_file(self, relative_from_path: str):
         """
@@ -109,8 +103,6 @@ class AzureDatasetClient():
         file_bytes = file_client.download_file().readall()
         file_bytes = io.BytesIO(file_bytes)
         return torch.load(file_bytes)
-
-
 
     def upload_dataset(
         self, features: HPOFeatures, accuracies: List[float], append=False
@@ -131,9 +123,7 @@ class AzureDatasetClient():
         self._save_torch_object(features, self.features_filename)
         self._save_torch_object(accuracies, self.accuracies_filename)
 
-    async def aupload_dataset(
-        self, features: HPOFeatures, accuracies: List[float]
-    ):
+    async def aupload_dataset(self, features: HPOFeatures, accuracies: List[float]):
         self.upload_dataset(features, accuracies)
 
     def fetch_dataset(self) -> HPODataset:
@@ -143,7 +133,10 @@ class AzureDatasetClient():
         """
 
         try:
-            features = [HPOFeatures(*feats) for feats in self._fetch_pt_file(self.features_filename)]
+            features = [
+                HPOFeatures(*feats)
+                for feats in self._fetch_pt_file(self.features_filename)
+            ]
             accuracies = self._fetch_pt_file(self.accuracies_filename)
         except ResourceNotFoundError:
             features, accuracies = [], []
@@ -163,12 +156,14 @@ class AzureDatasetClient():
         except ResourceNotFoundError:
             pass
 
-    def _delete_directory(self, relative_dir_path: str =""):
+    def _delete_directory(self, relative_dir_path: str = ""):
         """
         deletes the given directory. if it doesn't exist or is nonempty, does nothing
         """
 
-        dir_client = self.share.get_directory_client(os.path.join(self.base_dir, relative_dir_path))
+        dir_client = self.share.get_directory_client(
+            os.path.join(self.base_dir, relative_dir_path)
+        )
 
         try:
             dir_client.delete_directory()

@@ -31,12 +31,20 @@ image = (
 )
 
 
-@app.function(gpu=modal.gpu.A10G(), image=image, retries=0, volumes={"/data": vol}, timeout=3600)
+@app.function(
+    gpu=modal.gpu.A10G(), image=image, retries=0, volumes={"/data": vol}, timeout=3600
+)
 def train_one_cnn():
     train_1_cnn()
 
 
-@app.function(gpu=modal.gpu.A10G(count=4), image=image, retries=0, volumes={"/data": vol}, timeout=3600)
+@app.function(
+    gpu=modal.gpu.A10G(count=4),
+    image=image,
+    retries=0,
+    volumes={"/data": vol},
+    timeout=3600,
+)
 def generate_data():
 
     import subprocess
@@ -74,5 +82,5 @@ def train_hpo_model():
 
 
 @app.local_entrypoint()
-def main(): 
+def main():
     train_one_cnn.remote()
