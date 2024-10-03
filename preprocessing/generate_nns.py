@@ -1,11 +1,22 @@
 import torch
 import torch.nn as nn
-from .types import RandCNNConfig, RandMLPConfig
+from .preprocessing_types import RandCNNConfig, RandMLPConfig
 
 
 class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.shape[0], -1)
+
+
+
+def init_weights(m):
+    if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.ones_(m.weight)
+        nn.init.zeros_(m.bias)
 
 
 def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
@@ -102,7 +113,9 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
         linear_layer_number += 1
 
     # combine layers into a sequential
-    return nn.Sequential(*layers)
+    seq = nn.Sequential(*layers)
+    seq.apply(init_weights)
+    return seq
 
 
 def generate_random_mlp(config=RandMLPConfig()) -> nn.Sequential:

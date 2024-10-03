@@ -3,7 +3,7 @@ import modal.gpu
 import time
 from experiments.run_train_hpo import load_data
 from preprocessing.generate_data import train_random_cnns_hyperparams
-from preprocessing.types import RandHyperparamsConfig, RandCNNConfig
+from preprocessing.preprocessing_types import RandHyperparamsConfig, RandCNNConfig
 from train.train_hpo2 import train_hpo_mpnn
 from train.utils import split
 from experiments.train_1_cnn import train_1_cnn

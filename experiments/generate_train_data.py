@@ -4,8 +4,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from preprocessing.generate_data import train_random_cnns_hyperparams
-from preprocessing.types import RandHyperparamsConfig, RandCNNConfig
-from preprocessing.types import HPOFeatures
+from preprocessing.preprocessing_types import RandHyperparamsConfig, RandCNNConfig
+from preprocessing.preprocessing_types import HPOFeatures
 from config import n_architectures, n_epochs_range
 from resources.azure_files import AzureDatasetClient
 from azure.core.exceptions import ResourceNotFoundError

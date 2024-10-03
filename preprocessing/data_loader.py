@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from argparse import ArgumentParser
-from preprocessing.types import HPODataset
+from preprocessing.preprocessing_types import HPODataset
 
 
 def get_dataset(feats_path: str, labels_path: str) -> HPODataset:

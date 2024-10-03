@@ -3,7 +3,7 @@ import os
 import time
 import concurrent.futures as cfutures
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from .gmn_types import Hyperparameters, RandHyperparamsConfig
+from .preprocessing_types import Hyperparameters, RandHyperparamsConfig
 from .get_cifar_data import get_cifar_data
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -14,7 +14,7 @@ import torch.nn as nn
 from torch import optim
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
-from preprocessing.gmn_types import HPOFeatures
+from preprocessing.preprocessing_types import HPOFeatures
 
 
 # DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')

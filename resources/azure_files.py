@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 import torch
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
 from azure.storage.fileshare import ShareServiceClient, ShareDirectoryClient
-from preprocessing.types import HPOFeatures
+from preprocessing.preprocessing_types import HPOFeatures
 from typing import Tuple, List
 
-from preprocessing.types import HPODataset
+from preprocessing.preprocessing_types import HPODataset
 
 from abc import ABC, abstractmethod
 
