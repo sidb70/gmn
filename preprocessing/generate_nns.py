@@ -8,7 +8,6 @@ class Flatten(nn.Module):
         return x.view(x.shape[0], -1)
 
 
-
 def init_weights(m):
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
         nn.init.xavier_uniform_(m.weight)

@@ -82,10 +82,9 @@ def train_cifar_worker(
 
     batch_nums = []
 
-    model_feats = [ seq_to_feats(cnn) ]
+    model_feats = [seq_to_feats(cnn)]
     train_losses = []
     val_losses = []
-    
 
     for j in range(n_epochs):
         running_train_loss = 0.0
@@ -111,20 +110,32 @@ def train_cifar_worker(
 
                 outputs = cnn(inputs).reshape(-1, 10)
                 labels = labels.reshape(-1)
-                if labels.shape[0] == 0 or torch.min(labels) < 0 or torch.max(labels) >= 10:
+                if (
+                    labels.shape[0] == 0
+                    or torch.min(labels) < 0
+                    or torch.max(labels) >= 10
+                ):
                     print("Invalid labels", labels.shape, labels)
                 assert labels.shape[0] > 0
                 assert torch.min(labels) >= 0
                 assert torch.max(labels) < 10
                 loss = criterion(outputs, labels)
                 running_val_loss += loss.item()
-        epoch_train_loss = running_train_loss/len(trainloader)
-        epoch_val_loss = running_val_loss/len(validloader)
-        train_losses.append(running_train_loss/len(trainloader))
-        val_losses.append(running_val_loss/len(validloader))
+        epoch_train_loss = running_train_loss / len(trainloader)
+        epoch_val_loss = running_val_loss / len(validloader)
+        train_losses.append(running_train_loss / len(trainloader))
+        val_losses.append(running_val_loss / len(validloader))
         model_feats.append(seq_to_feats(cnn))
 
-        print("Epoch", j, "train loss:", epoch_train_loss, "val loss:", epoch_val_loss, end="\r")
+        print(
+            "Epoch",
+            j,
+            "train loss:",
+            epoch_train_loss,
+            "val loss:",
+            epoch_val_loss,
+            end="\r",
+        )
     # calculate accuracy
     with torch.no_grad():
         correct = 0
@@ -139,11 +150,18 @@ def train_cifar_worker(
             correct += (predicted == labels).sum().item()
         accuracy = correct / total
 
-
     print(f"\nAccuracy: {accuracy}")
     # node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
     # features = (node_feats, edge_indices, edge_feats, hpo_vec)
-    return model_feats, hpo_vec, train_losses, val_losses, accuracy, device, architecture_id
+    return (
+        model_feats,
+        hpo_vec,
+        train_losses,
+        val_losses,
+        accuracy,
+        device,
+        architecture_id,
+    )
 
 
 def train_random_cnns_cifar10(
@@ -181,7 +199,7 @@ def train_random_cnns_cifar10(
                     futures.add(
                         executor.submit(
                             train_cifar_worker,
-                            time.time() + model_num/1000.,
+                            time.time() + model_num / 1000.0,
                             hpo_config,
                             random_cnn_config,
                             free_devices[i],
@@ -189,15 +207,30 @@ def train_random_cnns_cifar10(
                     )
                     model_num += 1
             for future in cfutures.as_completed(list(futures)):
-                model_feats, hpo_vec, train_losses, val_losses, accuracy, free_device, finished_model_id = future.result()
+                (
+                    model_feats,
+                    hpo_vec,
+                    train_losses,
+                    val_losses,
+                    accuracy,
+                    free_device,
+                    finished_model_id,
+                ) = future.result()
                 futures.remove(future)
                 print("Freed device", free_device)
-                save_data_callback(model_feats, hpo_vec, train_losses, val_losses,accuracy, finished_model_id)
+                save_data_callback(
+                    model_feats,
+                    hpo_vec,
+                    train_losses,
+                    val_losses,
+                    accuracy,
+                    finished_model_id,
+                )
                 if model_num < n_architectures:
                     futures.add(
                         executor.submit(
                             train_cifar_worker,
-                            start_id + model_num/1000.,
+                            start_id + model_num / 1000.0,
                             hyperparams[model_num],
                             random_cnn_config,
                             free_device,

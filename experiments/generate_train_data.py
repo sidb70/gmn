@@ -43,8 +43,8 @@ def train_save_to_azure(client: AzureFileClient):
 
 def train_save_locally(
     results_dir="data/cnn_hpo",
-    random_cnn_config = RandCNNConfig(),
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
+    random_cnn_config=RandCNNConfig(),
+    random_hyperparams_config=RandHyperparamsConfig(n_epochs_range=n_epochs_range),
 ):
 
     os.makedirs(results_dir, exist_ok=True)
@@ -54,13 +54,15 @@ def train_save_locally(
     - save current epoch's
     """
 
-    def save_locally_callback(model_feats, hpo_vec, train_losses, val_losses, accuracy, model_id):
+    def save_locally_callback(
+        model_feats, hpo_vec, train_losses, val_losses, accuracy, model_id
+    ):
         model_dir = os.path.join(results_dir, f"{model_id}")
         if os.path.exists(model_dir):
             os.rmdir(model_dir)
         os.makedirs(model_dir, exist_ok=True)
 
-        torch.save(model_feats, os.path.join(model_dir, "model_features.pt")) 
+        torch.save(model_feats, os.path.join(model_dir, "model_features.pt"))
         results = {
             "hyperparameters": hpo_vec,
             "train_losses": train_losses,
@@ -71,14 +73,12 @@ def train_save_locally(
             json.dump(results, f)
         print("Saved model {} to {}".format(model_id, model_dir))
 
-
     train_random_cnns_hyperparams(
         random_cnn_config=random_cnn_config,
         random_hyperparams_config=random_hyperparams_config,
         n_architectures=n_architectures,
         save_data_callback=save_locally_callback,
     )
-
 
 
 if __name__ == "__main__":

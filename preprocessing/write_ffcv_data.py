@@ -11,13 +11,17 @@ import os
 
 def cifar_10_to_beton(save_path):
     # Load the CIFAR-10 dataset
-    full_train_dataset = torchvision.datasets.CIFAR10(save_path, train=True, download=True)
+    full_train_dataset = torchvision.datasets.CIFAR10(
+        save_path, train=True, download=True
+    )
     test_dataset = torchvision.datasets.CIFAR10(save_path, train=False, download=True)
 
     # Split the training dataset into training and validation sets
     train_size = int(0.8 * len(full_train_dataset))
     val_size = len(full_train_dataset) - train_size
-    train_dataset, val_dataset = random_split(full_train_dataset, [train_size, val_size])
+    train_dataset, val_dataset = random_split(
+        full_train_dataset, [train_size, val_size]
+    )
 
     datasets = {
         "train": train_dataset,

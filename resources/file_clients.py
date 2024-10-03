@@ -16,27 +16,24 @@ class FileClient(ABC):
         self.base_dir = base_dir
 
     @abstractmethod
-    def save_to_file(self, data: io.BytesIO): 
-        ...
+    def save_to_file(self, data: io.BytesIO): ...
 
     @abstractmethod
-    def read_file(self, relative_path: str) -> io.BytesIO:
-        ...
+    def read_file(self, relative_path: str) -> io.BytesIO: ...
 
     @abstractmethod
-    def delete_file(self, relative_file_path: str): 
+    def delete_file(self, relative_file_path: str):
         """
         Deletes the file. If it doesn't exist, does nothing
         """
         ...
 
     @abstractmethod
-    def delete_directory(self, relative_dir_path: str): 
+    def delete_directory(self, relative_dir_path: str):
         """
         Deletes the directory. If it doesn't exist or is not empty, does nothing.
         """
         ...
-
 
     def save_torch_object(self, obj: object, relative_to_path: str):
         with io.BytesIO() as data:
@@ -57,6 +54,7 @@ class FileClient(ABC):
 
 
 AZURE_FILESHARE_NAME = "data"
+
 
 class AzureFileClient(FileClient):
 
