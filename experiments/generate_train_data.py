@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -41,46 +42,36 @@ def train_save_to_azure(client: AzureDatasetClient):
 
 
 def train_save_locally():
+    '''
+    '''
 
     results_dir = "data/cnn_hpo"
-
     os.makedirs(results_dir, exist_ok=True)
 
-    features_path = os.path.join(results_dir, "features.pt")
-    accuracies_path = os.path.join(results_dir, "accuracies.pt")
-    if os.path.exists(os.path.join(results_dir, "features.pt")):
-        features = torch.load(features_path)
-    else:
-        features = []
-    if os.path.exists(accuracies_path):
-        accuracies = torch.load(accuracies_path)
-    else:
-        accuracies = []
+    def save_locally_callback(model_feats, train_losses, val_losses,accuracy,model_id):
+        model_dir = os.path.join(results_dir, f"{model_id}")
+        if os.path.exists(model_dir):
+            os.rmdir(model_dir)
+        os.makedirs(model_dir, exist_ok=True)
 
-    print("Loaded", len(features), "features and", len(accuracies), "accuracies")
-
-    def save_locally_callback(feature, accuracy):
-
-        features.append(feature)
-        accuracies.append(accuracy)
-        if os.path.exists(features_path):
-            os.remove(features_path)
-        if os.path.exists(accuracies_path):
-            os.remove(accuracies_path)
-
-        torch.save(features, features_path)
-        torch.save(accuracies, accuracies_path)
-        print("saved to {}".format(results_dir))
+        torch.save(model_feats, os.path.join(model_dir, "model_features.pt")) 
+        results = {
+            "train_losses": train_losses,
+            "val_losses": val_losses,
+            "accuracy": accuracy,
+        }
+        with open(os.path.join(model_dir, "results.json"), "w") as f:
+            json.dump(results, f)
+        print("Saved model {} to {}".format(model_id, model_dir))   
 
     start_time = time.time()
-
     random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
+
     train_random_cnns_hyperparams(
-        "data/hpo",
-        n_architectures=n_architectures,
-        random_hyperparams_config=random_hyperparams_config,
         random_cnn_config=random_cnn_config,
+        random_hyperparams_config=random_hyperparams_config,
+        n_architectures=n_architectures,
         save_data_callback=save_locally_callback,
     )
     print(f"Time taken: {time.time() - start_time:.2f} seconds.")
@@ -95,9 +86,9 @@ if __name__ == "__main__":
     on single A10G GPU:
     """
 
-    client = AzureDatasetClient()
-    train_save_to_azure(client)
-    # train_save_locally()
+    # client = AzureDatasetClient()
+    # train_save_to_azure(client)
+    train_save_locally()
     exit(0)
 
     start_time = time.time()

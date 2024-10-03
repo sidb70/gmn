@@ -189,10 +189,10 @@ def train_random_cnns_cifar10(
                     )
                     model_num += 1
             for future in cfutures.as_completed(list(futures)):
-                feature,train_losses, val_losses,  accuracy, free_device, finished_model_idx = future.result()
+                model_feats, train_losses, val_losses, accuracy, free_device, finished_model_id = future.result()
                 futures.remove(future)
                 print("Freed device", free_device)
-                save_data_callback(feature, accuracy, finished_model_idx)
+                save_data_callback(model_feats, train_losses, val_losses,accuracy, finished_model_id)
                 if model_num < n_architectures:
                     futures.add(
                         executor.submit(
