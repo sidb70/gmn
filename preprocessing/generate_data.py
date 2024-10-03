@@ -143,7 +143,7 @@ def train_cifar_worker(
     print(f"\nAccuracy: {accuracy}")
     # node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
     # features = (node_feats, edge_indices, edge_feats, hpo_vec)
-    return model_feats, train_losses, val_losses, accuracy, device, architecture_id
+    return model_feats, hpo_vec, train_losses, val_losses, accuracy, device, architecture_id
 
 
 def train_random_cnns_cifar10(
@@ -189,10 +189,10 @@ def train_random_cnns_cifar10(
                     )
                     model_num += 1
             for future in cfutures.as_completed(list(futures)):
-                model_feats, train_losses, val_losses, accuracy, free_device, finished_model_id = future.result()
+                model_feats, hpo_vec, train_losses, val_losses, accuracy, free_device, finished_model_id = future.result()
                 futures.remove(future)
                 print("Freed device", free_device)
-                save_data_callback(model_feats, train_losses, val_losses,accuracy, finished_model_id)
+                save_data_callback(model_feats, hpo_vec, train_losses, val_losses,accuracy, finished_model_id)
                 if model_num < n_architectures:
                     futures.add(
                         executor.submit(

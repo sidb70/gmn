@@ -48,7 +48,7 @@ def train_save_locally():
     results_dir = "data/cnn_hpo"
     os.makedirs(results_dir, exist_ok=True)
 
-    def save_locally_callback(model_feats, train_losses, val_losses,accuracy,model_id):
+    def save_locally_callback(model_feats, hpo_vec, train_losses, val_losses,accuracy,model_id):
         model_dir = os.path.join(results_dir, f"{model_id}")
         if os.path.exists(model_dir):
             os.rmdir(model_dir)
@@ -56,6 +56,7 @@ def train_save_locally():
 
         torch.save(model_feats, os.path.join(model_dir, "model_features.pt")) 
         results = {
+            "hyperparameters": hpo_vec,
             "train_losses": train_losses,
             "val_losses": val_losses,
             "accuracy": accuracy,
