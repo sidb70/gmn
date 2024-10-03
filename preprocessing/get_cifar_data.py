@@ -30,7 +30,7 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
         CIFAR_MEAN = [125.307, 122.961, 113.8575]
         CIFAR_STD = [51.5865, 50.847, 51.255]
         loaders = {}
-        for name in ["train", "test"]:
+        for name in ["train","valid", "test"]:
             label_pipeline: List[Operation] = [
                 IntDecoder(),
                 ToTensor(),
@@ -60,6 +60,7 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
             )
         ###
         trainloader = loaders["train"]
+        validloader = loaders["valid"]
         testloader = loaders["test"]
 
     else:
@@ -90,4 +91,4 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
         testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
     # trainloader.to(device)
     # testloader.to(device)
-    return trainloader, testloader
+    return trainloader, validloader, testloader
