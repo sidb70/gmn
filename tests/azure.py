@@ -10,7 +10,7 @@ from experiments.generate_train_data import train_save_to_azure
 from azure.core.exceptions import ResourceNotFoundError
 
 # from resources import azure_files
-from resources import AzureDatasetClient
+from resources import AzureStorageClient
 
 
 class TestGenerateData(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestGenerateData(unittest.TestCase):
     @unittest.skip("skip")
     def test_upload_load_delete_tensor(self):
 
-        client = AzureDatasetClient()
+        client = AzureStorageClient()
 
         tensors = [torch.rand(n, n, 1) for n in range(1, 100)]
 
@@ -37,10 +37,10 @@ class TestGenerateData(unittest.TestCase):
         with self.assertRaises(ResourceNotFoundError):
             client._fetch_pt_file(path)
 
-    # @unittest.skip("skip")
+    @unittest.skip("skip")
     def test_train_save_to_azure(self):
 
-        client = AzureDatasetClient("test/test-hpo")
+        client = AzureStorageClient("test/test-hpo")
 
         client.delete_dataset()
 

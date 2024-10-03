@@ -8,13 +8,13 @@ from preprocessing.generate_data import train_random_cnns_hyperparams
 from preprocessing.preprocessing_types import RandHyperparamsConfig, RandCNNConfig
 from preprocessing.preprocessing_types import HPOFeatures
 from config import n_architectures, n_epochs_range
-from resources.azure_files import AzureDatasetClient
+from resources.file_clients import AzureFileClient
 from azure.core.exceptions import ResourceNotFoundError
 import time
 import torch
 
 
-def train_save_to_azure(client: AzureDatasetClient):
+def train_save_to_azure(client: AzureFileClient):
 
     try:
         features, accuracies = client.fetch_dataset()
@@ -41,14 +41,20 @@ def train_save_to_azure(client: AzureDatasetClient):
     client.upload_dataset(features, accuracies)
 
 
-def train_save_locally():
-    '''
-    '''
+def train_save_locally(
+    results_dir="data/cnn_hpo",
+    random_cnn_config = RandCNNConfig(),
+    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
+):
 
-    results_dir = "data/cnn_hpo"
     os.makedirs(results_dir, exist_ok=True)
 
-    def save_locally_callback(model_feats, hpo_vec, train_losses, val_losses,accuracy,model_id):
+    """
+    callback every model trained:
+    - save current epoch's
+    """
+
+    def save_locally_callback(model_feats, hpo_vec, train_losses, val_losses, accuracy, model_id):
         model_dir = os.path.join(results_dir, f"{model_id}")
         if os.path.exists(model_dir):
             os.rmdir(model_dir)
@@ -63,11 +69,8 @@ def train_save_locally():
         }
         with open(os.path.join(model_dir, "results.json"), "w") as f:
             json.dump(results, f)
-        print("Saved model {} to {}".format(model_id, model_dir))   
+        print("Saved model {} to {}".format(model_id, model_dir))
 
-    start_time = time.time()
-    random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=n_epochs_range)
 
     train_random_cnns_hyperparams(
         random_cnn_config=random_cnn_config,
@@ -75,9 +78,7 @@ def train_save_locally():
         n_architectures=n_architectures,
         save_data_callback=save_locally_callback,
     )
-    print(f"Time taken: {time.time() - start_time:.2f} seconds.")
 
-    # upload_dataset(*result, parent_dir="test-hpo")
 
 
 if __name__ == "__main__":
@@ -91,15 +92,3 @@ if __name__ == "__main__":
     # train_save_to_azure(client)
     train_save_locally()
     exit(0)
-
-    start_time = time.time()
-
-    random_cnn_config = RandCNNConfig()
-    random_hyperparams_config = RandHyperparamsConfig(n_epochs_range=[15, 35])
-    result = train_random_cnns_hyperparams(
-        "data/hpo",
-        n_architectures=n_architectures,
-        random_hyperparams_config=random_hyperparams_config,
-        random_cnn_config=random_cnn_config,
-    )
-    print(f"Time taken: {time.time() - start_time:.2f} seconds.")

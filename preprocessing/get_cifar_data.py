@@ -79,16 +79,22 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
         train_sampler = SubsetRandomSampler(
             torch.randperm(len(trainset))[:cifar10_train_size]
         )
-
         trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
+
+        valid_size = cifar10_train_size // 4
+        valid_sampler = SubsetRandomSampler(
+            torch.randperm(len(testset))[:valid_size]
+        )
+        validloader = DataLoader(testset, batch_size=batch_size, sampler=valid_sampler)
 
         testset = CIFAR10(
             root=cifar_10_dir, train=False, download=True, transform=transform
         )
         test_size = cifar10_train_size // 4
         test_sampler = SubsetRandomSampler(torch.randperm(len(testset))[:test_size])
-
         testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
+
+
     # trainloader.to(device)
     # testloader.to(device)
     return trainloader, validloader, testloader
