@@ -3,15 +3,16 @@ from sklearn.model_selection import train_test_split
 
 
 def split(
-    features, labels, test_size=0.1, valid_size=None
+    features: list, labels: list, test_size=0.1, valid_size=None
 ) -> tuple[tuple[list, list], tuple[list, list], tuple[list, list]]:
     """
     Split features and labels into train, test, and valid subsets.
 
     Args:
-    - features, labels (list): List of features and labels.
+    - features (list), labels (list): Lists of features and labels.
     - test_size (float): Proportion of the data to include in the test set.
-    - valid_size (float, optional): Proportion of the data to include in the validation set. Defaults to None.
+    - valid_size (float, optional): Proportion of the train data to include in the validation set.
+        Defaults to test_size
 
     Returns:
     - 3-tuple containing 2-tuples of train, test, and valid subsets of features and labels.

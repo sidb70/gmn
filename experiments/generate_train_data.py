@@ -15,8 +15,8 @@ from resources.dataset_clients import HPOExperimentClient
 
 if __name__ == "__main__":
 
-    file_client = LocalFileClient('data/cnn_hpo')
-    file_client = AzureFileClient('cnn_hpo-0')
+    file_client = LocalFileClient("data/cnn_hpo")
+    # file_client = AzureFileClient("cnn_hpo-0")
 
     dataset_client = HPOExperimentClient(file_client=file_client)
 

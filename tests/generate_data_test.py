@@ -16,6 +16,7 @@ from preprocessing.preprocessing_types import (
 )
 
 from resources.file_clients import LocalFileClient
+from resources.dataset_clients import HPOExperimentClient
 
 
 class TestGenerateData(unittest.TestCase):
@@ -57,6 +58,23 @@ class TestGenerateData(unittest.TestCase):
         print(feats[0].shape, feats[1].shape, feats[2].shape)
 
         file_client.delete_directory()
+
+
+
+    def test_train_random_cnns_random_hyperparams(self):
+
+        data_client = HPOExperimentClient(LocalFileClient("data/test-train-cnns"))
+
+        train_random_cnns_random_hyperparams(
+            n_architectures=19,
+            save_result_callback=data_client.save_model_result,
+        )
+
+        results = data_client.file_client
+
+        data_client.delete_dataset()
+
+
 
 
 

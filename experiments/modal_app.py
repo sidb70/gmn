@@ -46,7 +46,7 @@ def generate_data():
     print("here's my gpus:")
     subprocess.run(["nvidia-smi", "--list-gpus"], check=True)
 
-    file_client = AzureFileClient('cnn-hpo-0')
+    file_client = AzureFileClient("cnn-hpo-0")
     dataset_client = HPOExperimentClient(file_client=file_client)
 
     start_time = time.time()

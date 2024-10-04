@@ -23,8 +23,8 @@ class Hyperparameters:
 
     def __str__(self):
         return (
-            f"batch_size: {self.batch_size}, lr: {self.lr}, "
-            f"n_epochs: {self.n_epochs}, momentum: {self.momentum}"
+            f"batch_size: {self.batch_size}, lr: {self.lr:.4f}, "
+            f"n_epochs: {self.n_epochs}, momentum: {self.momentum:.4f}"
         )
 
 
@@ -96,6 +96,7 @@ class HPOFeatures(NetFeatures):
     """
     Includes the hyperparameters used to train it.
     """
+
     hpo_vec: HPOvec
 
 

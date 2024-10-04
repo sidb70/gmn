@@ -8,7 +8,6 @@ from .file_clients import FileClient, LocalFileClient
 AZURE_FILESHARE_NAME = "data"
 
 
-
 class HPOExperimentClient:
     """
     Abstract class for managing the storage of an HPO dataset in the format:
@@ -24,7 +23,6 @@ class HPOExperimentClient:
         if file_client is None:
             file_client = LocalFileClient()
         self.file_client = file_client
-
 
     def save_model_result(self, result: TrainedNNResult):
 
@@ -65,8 +63,11 @@ class HPOExperimentClient:
 
     def read_dataset(self) -> list[TrainedNNResult]:
         """
-        Reads the dataset saved at self.base_dir. 
+        Reads the dataset saved at self.base_dir.
         """
+        raise NotImplementedError
+
+
 
     def delete_dataset(self):
         """
