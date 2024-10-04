@@ -1,8 +1,8 @@
 import sys
 import os
-
+import random
 from typing import Tuple, List
-import time
+import uuid
 import concurrent.futures as cfutures
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import torch
@@ -28,8 +28,8 @@ EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
 print("Using devices", DEVICES)
 
 
-def train_cifar_worker(
-    architecture_id: int,
+def train_cnn(
+    architecture_id: str,
     hyperparams: Hyperparameters,
     random_cnn_config: RandCNNConfig,
     device: torch.device,
@@ -101,11 +101,7 @@ def train_cifar_worker(
         train_losses.append(running_train_loss / len(trainloader))
         val_losses.append(running_val_loss / len(validloader))
         model_feats.append(seq_to_feats(cnn))
-
-        print(
-            f"Model {architecture_id}, \tEpoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}",
-            end="\r" if j < n_epochs - 1 else "\n",
-        )
+        print(f"Model Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}", end="\r" if j < n_epochs - 1 else "\n")
     # calculate accuracy
     with torch.no_grad():
         correct = 0
@@ -132,10 +128,25 @@ def train_cifar_worker(
 
     return result
 
-
+def train_cnns(device: torch.device,
+               save_result_callback,
+               hyperparams_list: List[Hyperparameters], 
+               random_cnn_config: RandCNNConfig, 
+               ):
+    '''
+    trains all of the models in hyperparams_list on the given device
+    '''
+    print(
+        f"Training {len(hyperparams_list)} CNN(s) on device {device}"
+    )
+    for hyperparams in hyperparams_list:
+        result = train_cnn(str(uuid.uuid4()), hyperparams, random_cnn_config, device)
+        save_result_callback(result)
+    print("Finished training on device", device)
+    
 def train_random_cnns_with_hyperparams(
-    hyperparams_list=[Hyperparameters()],
-    random_cnn_config=RandCNNConfig(),
+    hyperparams_list: List[Hyperparameters],
+    random_cnn_config: RandCNNConfig,
     save_result_callback: callable = lambda x: None,
 ):
     """
@@ -148,52 +159,26 @@ def train_random_cnns_with_hyperparams(
     - save_data_callback: A callback that is called after every model finished training.
     """
 
-    n_architectures = len(hyperparams_list)
-
-    print(
-        f"Training {len(hyperparams_list)} CNN(s) with hyperparameters {hyperparams_list}"
-    )
-
-    model_num = 0
     free_devices = DEVICES.copy()
-    start_id = time.time()
     with EXECUTOR as executor:
-        futures = set()
-        while model_num < n_architectures:
-            print("model_num", model_num)
-            if len(futures) == 0:
-                # For each free device, submit a new model to train
-                for i, hyperparams in enumerate(
-                    hyperparams_list[model_num : model_num + len(free_devices)]
-                ):
-                    futures.add(
-                        executor.submit(
-                            train_cifar_worker,
-                            time.time() + model_num / 1000.0,
-                            hyperparams,
-                            random_cnn_config,
-                            free_devices[i],
-                            save_result_callback,
-                        )
-                    )
-                    model_num += 1
-            for future in cfutures.as_completed(list(futures)):
-                result: TrainedNNResult = future.result()
-                save_result_callback(result)
-                futures.remove(future)
-                print("Freed device", result.device)
-                if model_num < n_architectures:
-                    futures.add(
-                        executor.submit(
-                            train_cifar_worker,
-                            start_id + model_num / 1000.0,
-                            hyperparams_list[model_num],
-                            random_cnn_config,
-                            result.device,
-                            save_result_callback,
-                        )
-                    )
-                    model_num += 1
+        futures = []
+        num_gpus = len(free_devices)
+        partitions = [hyperparams_list[i::num_gpus] for i in range(num_gpus)]
+
+        for i,device in enumerate(free_devices):
+            hyperparams_list_device = list(partitions[i])
+            futures.append(
+                executor.submit(
+                    train_cnns,
+                    device,
+                    save_result_callback,
+                    hyperparams_list_device,
+                    random_cnn_config,
+                )
+            )
+        for future in cfutures.as_completed(futures):
+            future.result()
+
 
 
 def train_random_cnns_random_hyperparams(
