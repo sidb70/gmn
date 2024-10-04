@@ -4,11 +4,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
-from pprint import pprint
 import time
-import torch
 import torch.nn as nn
-import numpy as np
 from gmn_lim.model_arch_graph import seq_to_feats
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
 

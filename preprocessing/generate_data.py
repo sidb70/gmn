@@ -1,20 +1,19 @@
 import sys
 import os
+
+from typing import Tuple, List
 import time
 import concurrent.futures as cfutures
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from .preprocessing_types import Hyperparameters, RandHyperparamsConfig
-from .get_cifar_data import get_cifar_data
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from typing import Tuple
 import torch
 import torch.nn as nn
 from torch import optim
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from gmn_lim.model_arch_graph import seq_to_feats
+from preprocessing.get_cifar_data import get_cifar_data
 from preprocessing.generate_nns import generate_random_cnn, RandCNNConfig
-from preprocessing.preprocessing_types import HPOFeatures
+from preprocessing.preprocessing_types import *
 
 
 # DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -25,29 +24,8 @@ else:
     DEVICES = [torch.device("cpu")]
 
 EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
-# EXECUTOR = ProcessPoolExecutor(max_workers=len(DEVICES))
 
 print("Using devices", DEVICES)
-
-
-def train_random_cnns_hyperparams(
-    random_cnn_config: RandCNNConfig,
-    random_hyperparams_config: RandHyperparamsConfig,
-    n_architectures=10,
-    save_data_callback: callable = lambda x: None,
-):
-    """
-    Generates and trains random CNNs, using random hyperparameters.
-    """
-
-    hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]
-    print("Training with hyperparams", hyperparams)
-
-    train_random_cnns_cifar10(
-        hyperparams=hyperparams,
-        random_cnn_config=random_cnn_config,
-        save_data_callback=save_data_callback,
-    )
 
 
 def train_cifar_worker(
@@ -55,16 +33,15 @@ def train_cifar_worker(
     hyperparams: Hyperparameters,
     random_cnn_config: RandCNNConfig,
     device: torch.device,
-    save_data_callback: callable = lambda x: None,
-) -> Tuple[HPOFeatures, torch.Tensor, torch.device, int]:
+    save_result_callback: callable = lambda x: None,
+) -> TrainedNNResult:
     """
-    Generates and trains a random CNN on CIFAR10 data with the given hyperparameters, on the given CUDA device.
+    Generates and trains a random CNN on CIFAR10 data
+    with the given hyperparameters, on the given CUDA device.
+    """
 
-    Args:
-    - architecture_id: int, just used for logging
-    - device: torch.device, the device the model is trained on
-    """
-    print("Training model", architecture_id + 1, " on device", device)
+    print(f"Training model {architecture_id} on device {device}")
+
     hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
 
@@ -75,14 +52,12 @@ def train_cifar_worker(
     cnn = generate_random_cnn(random_cnn_config).to(device)
     n_params = sum(p.numel() for p in cnn.parameters())
 
-    print("Worker", architecture_id, "has", n_params, "parameters")
+    print(f"model has {n_params} parameters")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
 
-    batch_nums = []
-
-    model_feats = [seq_to_feats(cnn)]
+    model_feats: List[NetFeatures] = [seq_to_feats(cnn)]
     train_losses = []
     val_losses = []
 
@@ -127,15 +102,7 @@ def train_cifar_worker(
         val_losses.append(running_val_loss / len(validloader))
         model_feats.append(seq_to_feats(cnn))
 
-        print(
-            "Epoch",
-            j,
-            "train loss:",
-            epoch_train_loss,
-            "val loss:",
-            epoch_val_loss,
-            end="\r",
-        )
+        print(f"Model Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}", end="\r" if j < n_epochs - 1 else "\n")
     # calculate accuracy
     with torch.no_grad():
         correct = 0
@@ -150,41 +117,39 @@ def train_cifar_worker(
             correct += (predicted == labels).sum().item()
         accuracy = correct / total
 
-    print(f"\nAccuracy: {accuracy}")
-    # node_feats, edge_indices, edge_feats = seq_to_feats(cnn)
-    # features = (node_feats, edge_indices, edge_feats, hpo_vec)
-    return (
-        model_feats,
-        hpo_vec,
-        train_losses,
-        val_losses,
-        accuracy,
-        device,
-        architecture_id,
+    result = TrainedNNResult(
+        model_id=architecture_id,
+        epoch_feats=model_feats,
+        train_losses=train_losses,
+        val_losses=val_losses,
+        final_accuracy=accuracy,
+        hpo_vec=hpo_vec,
+        device=device,
     )
 
+    return result
 
-def train_random_cnns_cifar10(
-    hyperparams=[Hyperparameters()],
-    random_cnn_config=RandCNNConfig(n_classes=10),
-    save_data_callback: callable = lambda x: None,
+
+def train_random_cnns_with_hyperparams(
+    hyperparams_list=[Hyperparameters()],
+    random_cnn_config=RandCNNConfig(),
+    save_result_callback: callable = lambda x: None,
 ):
     """
-    Generates random CNN architectures and trains them on CIFAR10 data
-    Saves the resulting CNN node and edge features and their accuracies in directory
+    Generates random CNN architectures and trains them on CIFAR10 data.
+    Trains one CNN for each set of hyperparameters provided.
 
     Args:
     - hyperparams: List of Hyperparameters, the hyperparameters to use for training each model.
     - random_cnn_config: RandomCNNConfig, the configuration for generating random CNNs
     - save_data_callback: A callback that is called after every model finished training.
-        the callback gets these arguments:
-        - features: HPOFeatures
-        - accuracy: float
     """
 
-    n_architectures = len(hyperparams)
+    n_architectures = len(hyperparams_list)
 
-    print(f"Training {len(hyperparams)} cnn(s) with hyperparameters {hyperparams}")
+    print(
+        f"Training {len(hyperparams_list)} CNN(s) with hyperparameters {hyperparams_list}"
+    )
 
     model_num = 0
     free_devices = DEVICES.copy()
@@ -192,48 +157,57 @@ def train_random_cnns_cifar10(
     with EXECUTOR as executor:
         futures = set()
         while model_num < n_architectures:
+            print("model_num", model_num)
             if len(futures) == 0:
-                for i, hpo_config in enumerate(
-                    hyperparams[model_num : model_num + len(free_devices)]
+                # For each free device, submit a new model to train
+                for i, hyperparams in enumerate(
+                    hyperparams_list[model_num : model_num + len(free_devices)]
                 ):
                     futures.add(
                         executor.submit(
                             train_cifar_worker,
                             time.time() + model_num / 1000.0,
-                            hpo_config,
+                            hyperparams,
                             random_cnn_config,
                             free_devices[i],
+                            save_result_callback,
                         )
                     )
                     model_num += 1
             for future in cfutures.as_completed(list(futures)):
-                (
-                    model_feats,
-                    hpo_vec,
-                    train_losses,
-                    val_losses,
-                    accuracy,
-                    free_device,
-                    finished_model_id,
-                ) = future.result()
+                result: TrainedNNResult = future.result()
+                save_result_callback(result)
                 futures.remove(future)
-                print("Freed device", free_device)
-                save_data_callback(
-                    model_feats,
-                    hpo_vec,
-                    train_losses,
-                    val_losses,
-                    accuracy,
-                    finished_model_id,
-                )
+                print("Freed device", result.device)
                 if model_num < n_architectures:
                     futures.add(
                         executor.submit(
                             train_cifar_worker,
                             start_id + model_num / 1000.0,
-                            hyperparams[model_num],
+                            hyperparams_list[model_num],
                             random_cnn_config,
-                            free_device,
+                            result.device,
+                            save_result_callback,
                         )
                     )
                     model_num += 1
+
+
+def train_random_cnns_random_hyperparams(
+    n_architectures=10,
+    random_hyperparams_config=RandHyperparamsConfig(),
+    random_cnn_config=RandCNNConfig(),
+    save_result_callback: callable = lambda x: None,
+):
+    """
+    Generates and trains random CNNs on cifar10, using random hyperparameters.
+    """
+
+    hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]
+    print(len(hyperparams), n_architectures, "a")
+
+    train_random_cnns_with_hyperparams(
+        hyperparams_list=hyperparams,
+        random_cnn_config=random_cnn_config,
+        save_result_callback=save_result_callback,
+    )

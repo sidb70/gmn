@@ -1,88 +1,75 @@
 import os
-import io
-from dotenv import load_dotenv
-
-from typing import List
-from preprocessing.preprocessing_types import HPOFeatures, HPODataset
+import json
+from azure.core.exceptions import ResourceNotFoundError
+from preprocessing.preprocessing_types import TrainedNNResult
 from .file_clients import FileClient, LocalFileClient
-
-from abc import ABC, abstractmethod
 
 
 AZURE_FILESHARE_NAME = "data"
 
 
-class HPODatasetClient:
+
+class HPOExperimentClient:
     """
     Abstract class for managing the storage of an HPO dataset in the format:
 
     base_dir/
-        model_id
-        epoch0.pt
-        ...
-        final_model.pt
-        results.json: {
-            "train_losses": [float],
-            "val_losses": [float],
-            "final_accuracy": float
-            "hyperparameters": hpo_vec
-        }
+        model_id/
+            model_features: list of epoch feats
+            results.json
     """
 
-    def __init__(self, file_storage_client: FileClient = None, base_dir=""):
+    def __init__(self, file_client: FileClient = None):
 
-        if file_storage_client is None:
-            self.file_storage_client = LocalFileClient(base_dir)
+        if file_client is None:
+            file_client = LocalFileClient()
+        self.file_client = file_client
 
-        self.features_filename = "features.pt"
-        self.accuracies_filename = "accuracies.pt"
 
-    def upload_dataset(
-        self, features: HPOFeatures, accuracies: List[float], append=False
-    ):
+    def save_model_result(self, result: TrainedNNResult):
+
+        model_dir = str(result.model_id)
+
+        self.file_client.delete_directory(model_dir)
+
+        self.file_client.obj_to_pt_file(
+            result.epoch_feats, os.path.join(model_dir, "model_features.pt")
+        )
+
+        results = {
+            "hyperparameters": result.hpo_vec,
+            "train_losses": result.train_losses,
+            "val_losses": result.val_losses,
+            "accuracy": result.final_accuracy,
+        }
+
+        self.file_client.str_to_file(
+            json.dumps(results), os.path.join(model_dir, "results.json")
+        )
+
+        print(
+            "Saved model {} to {}".format(
+                result.model_id, os.path.join(self.file_client.base_dir, model_dir)
+            )
+        )
+
+    def save_dataset(self, model_results: list[TrainedNNResult]):
         """
-        Uploads the dataset consisting of features and accuracies to the specified parent directory.
-
-        Args:
-            features (HPOFeatures): The features to be uploaded.
-            accuracies (List[float]): The accuracies to be uploaded.
-            append (bool, optional): If True, the new data will be appended to the existing data.
-                Otherwise, the existing data will be overwritten.
-
-        Returns:
-            None
+        Saves results for all models.
         """
+        for result in model_results:
+            self.save_model_result(result)
 
-        self.save_torch_object(features, self.features_filename)
-        self.save_torch_object(accuracies, self.accuracies_filename)
+    async def asave_dataset(self):
+        raise NotImplementedError
 
-    async def aupload_dataset(self, features: HPOFeatures, accuracies: List[float]):
-        self.upload_dataset(features, accuracies)
-
-    def fetch_dataset(self) -> HPODataset:
+    def read_dataset(self) -> list[TrainedNNResult]:
         """
-        Returns the HPO dataset stored in the base directory.
-        Defaults to an empty dataset if no data is found.
+        Reads the dataset saved at self.base_dir. 
         """
-
-        try:
-            features = [
-                HPOFeatures(*feats)
-                for feats in self.read_pt_file(self.features_filename)
-            ]
-            accuracies = self.read_pt_file(self.accuracies_filename)
-        except ResourceNotFoundError:
-            features, accuracies = [], []
-
-        return (features, accuracies)
 
     def delete_dataset(self):
         """
-        deletes the accuracies and features files in the base directory
-        if the directory is empty, it will also be deleted
+        Deletes the contents of self.base_dir
         """
-
-        for filename in [self.features_filename, self.accuracies_filename]:
-            self.delete_file(filename)
-
-        self._delete_directory()
+        self.file_client.delete_directory()
