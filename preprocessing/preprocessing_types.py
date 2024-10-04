@@ -111,7 +111,7 @@ class TrainedNNResult:
     neural net during preprocessing for HPO.
     """
 
-    model_id: int
+    model_id: str
     # Unique identifier for the model architecture in this training run
     epoch_feats: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
     # Features of the model after each epoch

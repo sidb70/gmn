@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
 from azure.storage.fileshare import ShareServiceClient
 import torch
+from typing import Union
 
 
 load_dotenv()
@@ -98,7 +99,7 @@ class AzureFileClient(FileClient):
         self.service = ShareServiceClient.from_connection_string(conn_string)
         self.share = self.service.get_share_client(AZURE_FILESHARE_NAME)
 
-    def bytes_to_file(self, data: bytes | io.BytesIO, relative_path: str):
+    def bytes_to_file(self, data: Union[bytes , io.BytesIO], relative_path: str):
         file_client = self._get_file_client(relative_path)
         file_client.upload_file(data)
 
