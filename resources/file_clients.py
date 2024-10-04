@@ -62,6 +62,13 @@ class FileClient(ABC):
         ...
 
     @abstractmethod
+    def list_directories(self, relative_dir_path: str):
+        """
+        Returns a list of subdirectories in the directory, relative to self.base_dir.
+        """
+        ...
+    
+    @abstractmethod
     def delete_file(self, relative_file_path: str):
         """
         Deletes the file. If it doesn't exist, does nothing
@@ -107,6 +114,14 @@ class AzureFileClient(FileClient):
         file_client = self._get_file_client(relative_path)
         file_bytes = file_client.download_file().readall()
         return file_bytes
+    
+    def list_directories(self, relative_dir_path: str):
+        dir_client = self.share.get_directory_client(
+            os.path.join(self.base_dir, relative_dir_path)
+        )
+
+        return [item.name for item in dir_client.list_directories_and_files()]
+
 
     def delete_file(self, relative_path: str):
         file_client = self._get_file_client(relative_path)
@@ -170,6 +185,9 @@ class LocalFileClient(FileClient):
     def read_file_b(self, relative_path: str) -> bytes:
         with open(os.path.join(self.base_dir, relative_path), "rb") as f:
             return f.read()
+        
+    def list_directories(self, relative_path: str=""):
+        return os.listdir(os.path.join(self.base_dir, relative_path))
 
     def delete_file(self, relative_file_path: str):
         file_path = os.path.join(self.base_dir, relative_file_path)
@@ -185,10 +203,10 @@ class LocalFileClient(FileClient):
 
         except OSError as e:
 
-            if e.errno == errno.ENOENT:
+            if e.errno == errno.ENOENT: # directory doesn't exist
                 pass
 
-            elif e.errno == errno.ENOTEMPTY:
+            elif e.errno == errno.ENOTEMPTY: # directory is not empty
                 for root, dirs, files in os.walk(dir_path, topdown=False):
                     for file in files:
                         os.remove(os.path.join(root, file))

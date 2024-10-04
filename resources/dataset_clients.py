@@ -61,11 +61,42 @@ class HPOExperimentClient:
     async def asave_dataset(self):
         raise NotImplementedError
 
-    def read_dataset(self) -> list[TrainedNNResult]:
+    def read_dataset(self):
         """
         Reads the dataset saved at self.base_dir.
+
+        Returns:
+        (per model:)
+        - List of feats (per epoch)
+        - List of train and val losses (per epoch)
+        - hyperparams
+        - final accuracy
+
         """
-        raise NotImplementedError
+        model_dirs = self.file_client.list_directories()
+
+        model_results = []
+
+        for model_dir in model_dirs:
+
+            model_features = self.file_client.read_pt_file(
+                os.path.join(model_dir, "model_features.pt")
+            )
+
+            results = json.loads(
+                self.file_client.read_file(os.path.join(model_dir, "results.json"))
+            )
+
+            model_results.append(
+                model_id=model_dir,
+                epoch_feats=model_features,
+                train_losses=results["train_losses"],
+                val_losses=results["val_losses"],
+                final_accuracy=results["accuracy"],
+                hpo_vec=results["hyperparameters"]
+            )
+
+        return model_results
 
 
 

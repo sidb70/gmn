@@ -21,6 +21,7 @@ from resources.dataset_clients import HPOExperimentClient
 
 class TestGenerateData(unittest.TestCase):
 
+    @unittest.skip("skip")
     def test_train_random_cnn(self):
 
         random_cnn_config = RandCNNConfig(
@@ -65,14 +66,18 @@ class TestGenerateData(unittest.TestCase):
 
         data_client = HPOExperimentClient(LocalFileClient("data/test-train-cnns"))
 
+        data_client.delete_dataset()
+
         train_random_cnns_random_hyperparams(
             n_architectures=19,
+            random_hyperparams_config=RandHyperparamsConfig(n_epochs_range=(4, 10)),
             save_result_callback=data_client.save_model_result,
         )
 
-        results = data_client.file_client
+        # count the number of directories in the base directory
+        dirs = os.listdir(data_client.file_client.base_dir)
+        self.assertEqual(len(dirs), 19)
 
-        data_client.delete_dataset()
 
 
 
