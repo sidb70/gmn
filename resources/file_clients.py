@@ -20,7 +20,7 @@ class FileClient(ABC):
     It shouldn't be able to access or modify files outside of self.base_dir.
     """
 
-    def __init__(self, base_dir=""):
+    def __init__(self, base_dir):
         self.base_dir = base_dir
 
     @abstractmethod
@@ -99,7 +99,7 @@ AZURE_FILESHARE_NAME = "data"
 
 class AzureFileClient(FileClient):
 
-    def __init__(self, base_dir=""):
+    def __init__(self, base_dir):
         super().__init__(base_dir)
         conn_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 
@@ -172,7 +172,7 @@ class AzureFileClient(FileClient):
 
 class LocalFileClient(FileClient):
 
-    def __init__(self, base_dir=""):
+    def __init__(self, base_dir):
         super().__init__(base_dir)
 
     def bytes_to_file(self, data: io.BytesIO, relative_path: str):
@@ -187,7 +187,8 @@ class LocalFileClient(FileClient):
             return f.read()
         
     def list_directories(self, relative_path: str=""):
-        return os.listdir(os.path.join(self.base_dir, relative_path))
+        return [dirname for dirname in os.listdir(os.path.join(self.base_dir, relative_path)) \
+                if os.path.isdir(os.path.join(self.base_dir, relative_path, dirname))]
 
     def delete_file(self, relative_file_path: str):
         file_path = os.path.join(self.base_dir, relative_file_path)

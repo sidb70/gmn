@@ -75,7 +75,8 @@ class HPOExperimentClient:
         """
         model_dirs = self.file_client.list_directories()
 
-        model_results = []
+        features = []
+        labels = []
 
         for model_dir in model_dirs:
 
@@ -84,19 +85,20 @@ class HPOExperimentClient:
             )
 
             results = json.loads(
-                self.file_client.read_file(os.path.join(model_dir, "results.json"))
+                self.file_client.read_file_b(os.path.join(model_dir, "results.json"))
             )
+            
+            epoch0_feats=model_features[0],
+            train_losses=results["train_losses"],
+            val_losses=results["val_losses"],
+            final_accuracy=results["accuracy"],
+            hpo_vec=results["hyperparameters"]
+            features.append([epoch0_feats, hpo_vec])
+            labels.append(val_losses[-1])
 
-            model_results.append(
-                model_id=model_dir,
-                epoch_feats=model_features,
-                train_losses=results["train_losses"],
-                val_losses=results["val_losses"],
-                final_accuracy=results["accuracy"],
-                hpo_vec=results["hyperparameters"]
-            )
 
-        return model_results
+
+        return features, labels
 
 
 

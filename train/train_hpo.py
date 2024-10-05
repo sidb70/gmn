@@ -5,7 +5,7 @@ import numpy as np
 from argparse import ArgumentParser
 import sys
 import os
-from utils import split
+from .utils import split
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from models.mpnn_models import HPOMPNN
@@ -36,6 +36,7 @@ def train_epoch(model, feats, labels, batch_size, criterion, optimizer):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        print("Loss: ", loss.item())
         # print("Predictions: ", outs)
         # print("Labels: ", y)
 

@@ -129,7 +129,7 @@ def train_cnn(
     return result
 
 def train_cnns(device: torch.device,
-               save_result_callback,
+               save_result_callback: callable,
                hyperparams_list: List[Hyperparameters], 
                random_cnn_config: RandCNNConfig, 
                ):
@@ -140,14 +140,19 @@ def train_cnns(device: torch.device,
         f"Training {len(hyperparams_list)} CNN(s) on device {device}"
     )
     for hyperparams in hyperparams_list:
-        result = train_cnn(str(uuid.uuid4()), hyperparams, random_cnn_config, device)
+        try:
+            result = train_cnn(str(uuid.uuid4()), hyperparams, random_cnn_config, device)
+        except AssertionError as e:
+            print(f"Error training model with hyperparameters {hyperparams.to_vec()}: {e}")
+            continue
         save_result_callback(result)
     print("Finished training on device", device)
     
-def train_random_cnns_with_hyperparams(
-    hyperparams_list: List[Hyperparameters],
+def train_random_cnns_random_hyperparams(
+    save_result_callback: callable,
+    n_architectures,
+    random_hyperparams_config: RandHyperparamsConfig,
     random_cnn_config: RandCNNConfig,
-    save_result_callback: callable = lambda x: None,
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data.
@@ -159,6 +164,7 @@ def train_random_cnns_with_hyperparams(
     - save_data_callback: A callback that is called after every model finished training.
     """
 
+    hyperparams_list = [random_hyperparams_config.sample() for _ in range(n_architectures)]
     free_devices = DEVICES.copy()
     with EXECUTOR as executor:
         futures = []
@@ -180,22 +186,3 @@ def train_random_cnns_with_hyperparams(
             future.result()
 
 
-
-def train_random_cnns_random_hyperparams(
-    n_architectures=10,
-    random_hyperparams_config=RandHyperparamsConfig(),
-    random_cnn_config=RandCNNConfig(),
-    save_result_callback: callable = lambda x: None,
-):
-    """
-    Generates and trains random CNNs on cifar10, using random hyperparameters.
-    """
-
-    hyperparams = [random_hyperparams_config.sample() for _ in range(n_architectures)]
-    print(len(hyperparams), n_architectures, "a")
-
-    train_random_cnns_with_hyperparams(
-        hyperparams_list=hyperparams,
-        random_cnn_config=random_cnn_config,
-        save_result_callback=save_result_callback,
-    )
