@@ -53,6 +53,9 @@ def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
     # freeze model
     for param in model.parameters():
         param.requires_grad = False
+
+    val_running_loss = 0
+    num_batches = 0
     for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i + batch_size, len(feats))):
@@ -75,12 +78,13 @@ def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
                 out = model(node_feat, edge_index, edge_feat, hpo_vec)
             outs.append(out)
 
-    outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
-    y = torch.tensor(labels[i : i + batch_size]).to(DEVICE)
-    loss = criterion(outs, y)
-    print("Val Loss: ", loss)
-    print("Predictions: ", outs)
-    print("Labels: ", y)
+        outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
+        y = torch.tensor(labels[i : i + batch_size]).to(DEVICE)
+        loss = criterion(outs, y)
+        val_running_loss += loss.item()
+        num_batches += 1
+    print("Val Num Batches: ", num_batches, "Batch Size: ", batch_size)
+    print("Val Loss: ", val_running_loss / num_batches)
 
     # unfreeze model
     for param in model.parameters():
