@@ -36,7 +36,7 @@ class RandHyperparamsConfig:
 
     # default values for the hyperparameters
     log_batch_size_range: Tuple[int, int] = (5, 11)
-    lr_range: Tuple[float, float] = (0.0001, 0.07)
+    lr_range: Tuple[float, float] = (1e-5, 1e-1)
     n_epochs_range: Tuple[int, int] = (50, 150)
     momentum_range: Tuple[float, float] = (0.1, 0.9)
 
@@ -114,6 +114,8 @@ class TrainedNNResult:
 
     model_id: str
     # Unique identifier for the model architecture in this training run
+    torch_model: torch.nn.Module
+    # The trained model
     epoch_feats: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]
     # Features of the model after each epoch
     train_losses: List[float]

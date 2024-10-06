@@ -123,6 +123,7 @@ def train_random_cnn(
 
     result = TrainedNNResult(
         model_id=architecture_id,
+        torch_model=cnn,
         epoch_feats=epoch_feats,
         train_losses=train_losses,
         val_losses=val_losses,
