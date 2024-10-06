@@ -24,17 +24,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print(args)
-
     if args.filesystem == "local":
         file_client = LocalFileClient(args.results_dir or local_hpo_data_dir)
     elif args.filesystem == "azure":
         file_client = AzureFileClient(args.results_dir or 'hpo_data')
 
-    print(file_client.base_dir)
-
     dataset_client = HPOExperimentClient(file_client=file_client)
-    n_architectures = 1
+
     train_random_cnns_random_hyperparams(
         n_architectures=n_architectures,
         random_cnn_config=RandCNNConfig(),
