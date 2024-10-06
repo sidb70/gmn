@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 
 
 def split(
-    features: list, labels: list, test_size=0.1, valid_size=None
+    features: list, labels: list, test_size: float, valid_size: float
 ) -> tuple[tuple[list, list], tuple[list, list], tuple[list, list]]:
     """
     Split features and labels into train, test, and valid subsets.

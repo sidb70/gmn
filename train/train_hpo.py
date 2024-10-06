@@ -8,6 +8,7 @@ import os
 from .utils import split
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from resources.dataset_clients import HPOExperimentClient, LocalFileClient
 from models.mpnn_models import HPOMPNN
 from preprocessing.data_loader import get_dataset
 from preprocessing.generate_data import generate_random_cnn
@@ -21,7 +22,8 @@ def train_epoch(model, feats, labels, batch_size, criterion, optimizer):
     for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i + batch_size, len(feats))):
-            node_feat, edge_index, edge_feat, hpo_vec = feats[j]
+            #print("j: ", type(feats[j][0]), type(feats[j][1]))
+            (node_feat, edge_index, edge_feat), hpo_vec = feats[j]
             node_feat, edge_index, edge_feat, hpo_vec = (
                 torch.tensor(node_feat).to(DEVICE),
                 torch.tensor(edge_index).to(DEVICE),
@@ -49,7 +51,7 @@ def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
     for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i + batch_size, len(feats))):
-            node_feat, edge_index, edge_feat, hpo_vec = feats[j]
+            (node_feat, edge_index, edge_feat), hpo_vec = feats[j]
             node_feat, edge_index, edge_feat, hpo_vec = (
                 torch.tensor(node_feat, dtype=torch.float32).to(DEVICE),
                 torch.tensor(edge_index).to(DEVICE),
@@ -79,19 +81,24 @@ def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
         param.requires_grad = True
 
 
-def train_hpo(args):
+def train_hpo(args, feats, labels):
+    results_dir = args.results_dir
     hidden_dim = args.hidden_dim
-    feats_path = args.feats_path
-    label_path = args.label_path
     batch_size = args.batch_size
     valid_size = args.valid_size
     test_size = args.test_size
     num_epochs = args.epochs
     lr = args.lr
 
-    feats, labels = get_dataset(feats_path, label_path)
+    os.makedirs(results_dir, exist_ok=True)
+    # client = HPOExperimentClient(LocalFileClient('/mnt/home/bhatta70/Documents/gmn/gmn/data/cnn_hpo'))
+    # dataset = client.read_dataset()
+    # feats, labels = dataset
 
-    train_set, valid_set, test_set = split(valid_size, test_size, feats, labels)
+    # print("Feats: ", type(feats), "composed of", type(feats[0]))
+    # print("Labels: ", type(labels), "composed of", type(labels[0]))
+
+    train_set, valid_set, test_set = split( feats, labels, test_size, valid_size)
     model = HPOMPNN(hidden_dim, hpo_dim=len(feats[0][-1])).to(DEVICE)
 
     # optimizer
@@ -122,15 +129,14 @@ def train_hpo(args):
 
 if __name__ == "__main__":
     args = ArgumentParser()
-    args.add_argument("--feats_path", type=str, default="./data/cnn_hpo/features.pt")
-    args.add_argument("--label_path", type=str, default="./data/cnn_hpo/accuracies.pt")
+    args.add_argument("--results_dir", type=str, default="data/hpo_result", help="Directory to save results")
     args.add_argument("--node_feat_dim", type=int, default=3)
     args.add_argument("--edge_feat_dim", type=int, default=6)
     args.add_argument("--node_hidden_dim", type=int, default=16)
     args.add_argument("--edge_hidden_dim", type=int, default=16)
     args.add_argument("--hidden_dim", type=int, default=8)
     args.add_argument("--batch_size", type=int, default=2)
-    args.add_argument("--valid_size", type=float, default=0.2)
+    args.add_argument("--valid_size", type=float, default=0.1)
     args.add_argument("--test_size", type=float, default=0.1)
     args.add_argument("--epochs", type=int, default=100)
     args.add_argument("--lr", type=float, default=0.01)

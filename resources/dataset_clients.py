@@ -33,9 +33,14 @@ class HPOExperimentClient:
 
         self.file_client.delete_directory(model_dir)
 
-        self.file_client.obj_to_pt_file(
-            result.epoch_feats, os.path.join(model_dir, self.features_filename)
-        )
+        for i, epoch_feats in enumerate(result.epoch_feats):
+            # save epoch feats individually
+            self.file_client.obj_to_pt_file(
+                epoch_feats, os.path.join(model_dir, f"epoch_{i}_feats.pt")
+            )
+        # self.file_client.obj_to_pt_file(
+        #     result.epoch_feats, os.path.join(model_dir, "model_features.pt")
+        # )
 
         results = {
             "hyperparameters": result.hpo_vec,
@@ -71,28 +76,34 @@ class HPOExperimentClient:
         """
         model_dirs = self.file_client.list_directories()
 
-        feats: List[HPOFeatures] = []
-        val_losses: List[float] = []
+        features: List[HPOFeatures] = []
+        labels: List[float] = []
 
         for model_dir in model_dirs:
 
-            epoch_features = self.file_client.read_pt_file(
-                os.path.join(model_dir, self.features_filename)
+            epoch0_feats = self.file_client.read_pt_file(
+                os.path.join(model_dir, "epoch_0_feats.pt")
             )
 
             results = json.loads(
                 self.file_client.read_file_b(os.path.join(model_dir, "results.json"))
             )
 
-            feats.append(
-                HPOFeatures(
-                    node_feats=epoch_features[0][0],
-                    edge_indices=epoch_features[0][1],
-                    edge_feats=epoch_features[0][2],
-                    hpo_vec=results["hyperparameters"],
-                )
-            )
+            # print("Results: ", results) 
+            # for i, epoch_feats in enumerate(model_features):
+            #     # save epoch feats individually
+            #     self.file_client.obj_to_pt_file(
+            #         epoch_feats, os.path.join(model_dir, f"epoch_{i}_feats.pt")
+            #     )
+            
+            # epoch0_feats=model_features[0],
+            train_losses=results["train_losses"]
+            val_losses=results["val_losses"]
+            final_accuracy=results["accuracy"]
+            hpo_vec=results["hyperparameters"]
+            features.append([epoch0_feats, hpo_vec])
+            labels.append(val_losses[-1])
 
-            val_losses.append(results["val_losses"][-1])
 
-        return feats, val_losses
+
+        return features, labels
