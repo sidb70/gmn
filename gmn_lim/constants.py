@@ -54,6 +54,20 @@ NODE_TYPES = {
     "deepsets_bias": 15,
     "triplanar": 16,
 }
+NODE_TYPE_TO_LAYER = {
+    0: nn.Linear,
+    1: nn.Linear,
+    2: nn.Conv2d,
+    3: nn.Conv2d,
+    4: nn.BatchNorm2d,
+    5: nn.BatchNorm2d,
+    6: nn.LayerNorm,
+    7: nn.LayerNorm,
+    8: nn.GroupNorm,
+    9: nn.GroupNorm,
+    10: nn.InstanceNorm2d,
+    11: nn.InstanceNorm2d,
+}
 
 EDGE_TYPES = {
     "lin_weight": 0,
