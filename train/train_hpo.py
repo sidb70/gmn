@@ -19,6 +19,8 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def train_epoch(model, feats, labels, batch_size, criterion, optimizer):
+    epoch_running_loss =0 
+    num_batches = 0
     for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i + batch_size, len(feats))):
@@ -35,12 +37,15 @@ def train_epoch(model, feats, labels, batch_size, criterion, optimizer):
         outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
         y = torch.tensor(labels[i : i + batch_size]).to(DEVICE)
         loss = criterion(outs, y)
+        epoch_running_loss += loss.item()
+        num_batches += 1
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print("Loss: ", loss.item())
+        # print("Loss: ", loss.item())
         # print("Predictions: ", outs)
         # print("Labels: ", y)
+    print("Epoch Training Loss: ", epoch_running_loss / num_batches)
 
 
 def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
@@ -59,20 +64,21 @@ def eval_step(model, feats, labels, batch_size, criterion, hpo_grad_steps=75):
                 torch.tensor(hpo_vec).to(DEVICE),
             )
             # enable grad for hpo_vec
-            hpo_vec.requires_grad = True
-            for _ in range(hpo_grad_steps):
+            # hpo_vec.requires_grad = True
+            # for _ in range(hpo_grad_steps):
+            #     out = model(node_feat, edge_index, edge_feat, hpo_vec)
+            #     loss = criterion(out, torch.tensor(labels[j]).to(DEVICE))
+            #     loss.backward()
+            #     hpo_vec.data = hpo_vec.data - 0.01 * hpo_vec.grad
+            #     hpo_vec.grad.zero_()
+            with torch.no_grad():
                 out = model(node_feat, edge_index, edge_feat, hpo_vec)
-                loss = criterion(out, torch.tensor(labels[j]).to(DEVICE))
-                loss.backward()
-                hpo_vec.data = hpo_vec.data - 0.01 * hpo_vec.grad
-                hpo_vec.grad.zero_()
-            out = model(node_feat, edge_index, edge_feat, hpo_vec)
             outs.append(out)
 
     outs = torch.cat(outs, dim=1).squeeze(0).to(DEVICE)
     y = torch.tensor(labels[i : i + batch_size]).to(DEVICE)
     loss = criterion(outs, y)
-    print("Loss: ", loss)
+    print("Val Loss: ", loss)
     print("Predictions: ", outs)
     print("Labels: ", y)
 
@@ -135,7 +141,7 @@ if __name__ == "__main__":
     args.add_argument("--node_hidden_dim", type=int, default=16)
     args.add_argument("--edge_hidden_dim", type=int, default=16)
     args.add_argument("--hidden_dim", type=int, default=8)
-    args.add_argument("--batch_size", type=int, default=2)
+    args.add_argument("--batch_size", type=int, default=8)
     args.add_argument("--valid_size", type=float, default=0.1)
     args.add_argument("--test_size", type=float, default=0.1)
     args.add_argument("--epochs", type=int, default=100)
