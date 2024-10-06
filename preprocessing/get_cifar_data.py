@@ -1,4 +1,4 @@
-from config import use_ffcv, cifar10_train_size
+from config import use_ffcv
 import os
 import torch
 import torchvision
@@ -30,7 +30,7 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
         CIFAR_MEAN = [125.307, 122.961, 113.8575]
         CIFAR_STD = [51.5865, 50.847, 51.255]
         loaders = {}
-        for name in ["train","valid", "test"]:
+        for name in ["train", "valid", "test"]:
             label_pipeline: List[Operation] = [
                 IntDecoder(),
                 ToTensor(),
@@ -66,6 +66,8 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
     else:
         cifar_10_dir = os.path.join(data_dir, "cifar10")
 
+        cifar10_train_size = 500 # used only for testing, without ffcv
+
         transform = transforms.Compose(
             [
                 transforms.ToTensor(),
@@ -79,16 +81,20 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
         train_sampler = SubsetRandomSampler(
             torch.randperm(len(trainset))[:cifar10_train_size]
         )
-
         trainloader = DataLoader(trainset, batch_size=batch_size, sampler=train_sampler)
+
+        validset = CIFAR10(
+            root=cifar_10_dir, train=False, download=True, transform=transform
+        )
+        valid_size = cifar10_train_size // 4
+        valid_sampler = SubsetRandomSampler(torch.randperm(len(validset))[:valid_size])
+        validloader = DataLoader(validset, batch_size=batch_size, sampler=valid_sampler)
 
         testset = CIFAR10(
             root=cifar_10_dir, train=False, download=True, transform=transform
         )
         test_size = cifar10_train_size // 4
         test_sampler = SubsetRandomSampler(torch.randperm(len(testset))[:test_size])
-
         testloader = DataLoader(testset, batch_size=batch_size, sampler=test_sampler)
-    # trainloader.to(device)
-    # testloader.to(device)
+
     return trainloader, validloader, testloader
