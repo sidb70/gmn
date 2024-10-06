@@ -3,15 +3,20 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from typing import List
 import torch
 import torch.nn as nn
 from models.mpnn_models import HPOMPNN
 import numpy as np
+from preprocessing.preprocessing_types import NetFeatures
 
 
-def train_hpo_mpnn(features, labels):
+def train_hpo_mpnn(features: List[NetFeatures], labels):
     """
-    Train a MPNN to predict accuracy from network features and hyperparams
+    Train a MPNN to predict labels from network features and hyperparams
+
+    Args:
+    - features: NetFeatures
     """
 
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

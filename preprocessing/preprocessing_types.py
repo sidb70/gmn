@@ -90,7 +90,6 @@ class NetFeatures:
     edge_feats: torch.Tensor  # shape (n_edges, 6)
 
 
-# outdated
 @dataclass(frozen=True)
 class HPOFeatures(NetFeatures):
     """
@@ -100,11 +99,13 @@ class HPOFeatures(NetFeatures):
     hpo_vec: HPOvec
 
 
-# outdated
-HPODataset = Tuple[List[HPOFeatures], List[float]]
+HPODataset = Tuple[
+    List[HPOFeatures],  # labels
+    List[float],  # features: accuracies or val losses or anything
+]
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainedNNResult:
     """
     This class represents the result of training one
@@ -125,16 +126,3 @@ class TrainedNNResult:
     # Hyperparameters vector used for the model
     device: torch.device
     # Device used for training the model
-
-
-__all__ = [
-    "Hyperparameters",
-    "RandHyperparamsConfig",
-    "RandCNNConfig",
-    "RandMLPConfig",
-    "NetFeatures",
-    "HPOFeatures",
-    "HPOvec",
-    "TrainedNNResult",
-    "HPODataset",
-]

@@ -1,7 +1,7 @@
 import sys
 import os
 import random
-from typing import Tuple, List
+from typing import Tuple, List, Callable
 import uuid
 import concurrent.futures as cfutures
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -28,12 +28,11 @@ EXECUTOR = ThreadPoolExecutor(max_workers=len(DEVICES))
 print("Using devices", DEVICES)
 
 
-def train_cnn(
+def train_random_cnn(
     architecture_id: str,
     hyperparams: Hyperparameters,
     random_cnn_config: RandCNNConfig,
     device: torch.device,
-    save_result_callback: callable = lambda x: None,
 ) -> TrainedNNResult:
     """
     Generates and trains a random CNN on CIFAR10 data
@@ -57,7 +56,9 @@ def train_cnn(
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
 
-    model_feats: List[NetFeatures] = [seq_to_feats(cnn)]
+    epoch_feats: List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = [
+        seq_to_feats(cnn)
+    ]
     train_losses = []
     val_losses = []
 
@@ -100,8 +101,11 @@ def train_cnn(
         epoch_val_loss = running_val_loss / len(validloader)
         train_losses.append(running_train_loss / len(trainloader))
         val_losses.append(running_val_loss / len(validloader))
-        model_feats.append(seq_to_feats(cnn))
-        print(f"Model Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}", end="\r" if j < n_epochs - 1 else "\n")
+        epoch_feats.append(seq_to_feats(cnn))
+        print(
+            f"Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}",
+            end="\r" if j < n_epochs - 1 else "\n",
+        )
     # calculate accuracy
     with torch.no_grad():
         correct = 0
@@ -118,7 +122,7 @@ def train_cnn(
 
     result = TrainedNNResult(
         model_id=architecture_id,
-        epoch_feats=model_feats,
+        epoch_feats=epoch_feats,
         train_losses=train_losses,
         val_losses=val_losses,
         final_accuracy=accuracy,
@@ -128,50 +132,57 @@ def train_cnn(
 
     return result
 
-def train_cnns(device: torch.device,
-               save_result_callback: callable,
-               hyperparams_list: List[Hyperparameters], 
-               random_cnn_config: RandCNNConfig, 
-               ):
-    '''
+
+def train_cnns(
+    device: torch.device,
+    save_result_callback: Callable[[TrainedNNResult], None],
+    hyperparams_list: List[Hyperparameters],
+    random_cnn_config: RandCNNConfig,
+):
+    """
     trains all of the models in hyperparams_list on the given device
-    '''
-    print(
-        f"Training {len(hyperparams_list)} CNN(s) on device {device}"
-    )
-    for hyperparams in hyperparams_list:
+    """
+    print(f"Training {len(hyperparams_list)} CNN(s) on device {device}")
+
+    for i, hyperparams in enumerate(hyperparams_list):
+        model_id = str(uuid.uuid4())
+        print(f"device {device}\tmodel [{i+1}/{len(hyperparams_list)}]:{model_id}")
         try:
-            result = train_cnn(str(uuid.uuid4()), hyperparams, random_cnn_config, device)
+            result = train_random_cnn(model_id, hyperparams, random_cnn_config, device)
         except AssertionError as e:
-            print(f"Error training model with hyperparameters {hyperparams.to_vec()}: {e}")
+            print(
+                f"Error training model with hyperparameters {hyperparams}: {e}"
+            )
             continue
         save_result_callback(result)
     print("Finished training on device", device)
-    
+
+
 def train_random_cnns_random_hyperparams(
-    save_result_callback: callable,
+    save_result_callback: Callable[[TrainedNNResult], None],
     n_architectures,
-    random_hyperparams_config: RandHyperparamsConfig,
-    random_cnn_config: RandCNNConfig,
+    random_hyperparams_config=RandHyperparamsConfig(),
+    random_cnn_config=RandCNNConfig(),
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data.
     Trains one CNN for each set of hyperparameters provided.
 
     Args:
-    - hyperparams: List of Hyperparameters, the hyperparameters to use for training each model.
     - random_cnn_config: RandomCNNConfig, the configuration for generating random CNNs
-    - save_data_callback: A callback that is called after every model finished training.
+    - save_result_callback: A callback that is called after every model finished training.
     """
 
-    hyperparams_list = [random_hyperparams_config.sample() for _ in range(n_architectures)]
+    hyperparams_list = [
+        random_hyperparams_config.sample() for _ in range(n_architectures)
+    ]
     free_devices = DEVICES.copy()
     with EXECUTOR as executor:
         futures = []
         num_gpus = len(free_devices)
         partitions = [hyperparams_list[i::num_gpus] for i in range(num_gpus)]
 
-        for i,device in enumerate(free_devices):
+        for i, device in enumerate(free_devices):
             hyperparams_list_device = list(partitions[i])
             futures.append(
                 executor.submit(
@@ -184,5 +195,3 @@ def train_random_cnns_random_hyperparams(
             )
         for future in cfutures.as_completed(futures):
             future.result()
-
-

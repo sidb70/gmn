@@ -4,8 +4,7 @@ import time
 from experiments.run_train_hpo import load_data
 from preprocessing.generate_data import train_random_cnns_random_hyperparams
 from preprocessing.preprocessing_types import RandHyperparamsConfig, RandCNNConfig
-from resources.dataset_clients import HPOExperimentClient
-from resources.file_clients import AzureFileClient
+from resources import HPOExperimentClient, AzureFileClient
 from train.train_hpo2 import train_hpo_mpnn
 from train.utils import split
 from config import n_architectures, n_epochs_range

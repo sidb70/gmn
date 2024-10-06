@@ -15,8 +15,7 @@ from preprocessing.preprocessing_types import (
     TrainedNNResult,
 )
 
-from resources.file_clients import LocalFileClient
-from resources.dataset_clients import HPOExperimentClient
+from resources import LocalFileClient, HPOExperimentClient
 
 
 class TestGenerateData(unittest.TestCase):
@@ -60,13 +59,11 @@ class TestGenerateData(unittest.TestCase):
 
         file_client.delete_directory()
 
-
-
     def test_train_random_cnns_random_hyperparams(self):
 
         data_client = HPOExperimentClient(LocalFileClient("data/test-train-cnns"))
 
-        data_client.delete_dataset()
+        data_client.file_client.delete_directory()
 
         train_random_cnns_random_hyperparams(
             n_architectures=19,
@@ -77,10 +74,6 @@ class TestGenerateData(unittest.TestCase):
         # count the number of directories in the base directory
         dirs = os.listdir(data_client.file_client.base_dir)
         self.assertEqual(len(dirs), 19)
-
-
-
-
 
 
 if __name__ == "__main__":

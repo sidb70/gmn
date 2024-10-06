@@ -9,14 +9,24 @@ from preprocessing.preprocessing_types import (
     RandHyperparamsConfig,
     RandCNNConfig,
 )
-from resources.file_clients import AzureFileClient, LocalFileClient
-from resources.dataset_clients import HPOExperimentClient
+from resources import AzureFileClient, LocalFileClient, HPOExperimentClient
+import argparse
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "dataset_location", type=str, choices=["local", "azure"], default="local"
+    )
+    parser.add_argument("results_dir", type=str, default="data/cnn_hpo")
+    args = parser.parse_args()
 
-    # file_client = LocalFileClient("data/cnn_hpo")
-    file_client = AzureFileClient("cnn_hpo")
+    if args.dataset_location == "local":
+        file_client = LocalFileClient(args.results_dir)
+    elif args.dataset_location == "azure":
+        file_client = AzureFileClient(args.results_dir)
 
     dataset_client = HPOExperimentClient(file_client=file_client)
 

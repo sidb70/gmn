@@ -5,32 +5,22 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
 import shutil
+from preprocessing.generate_data import train_random_cnns_random_hyperparams
 from train.utils import split
 from train.train_hpo import train_hpo
-from resources.dataset_clients import HPOExperimentClient, LocalFileClient
+from resources import LocalFileClient, HPOExperimentClient, LocalFileClient
+from config import local_data_dir
 
 
-def load_data(results_dir):
-    os.makedirs(results_dir, exist_ok=True)
+def load_data(results_dir="cnn_hpo"):
 
-    client = HPOExperimentClient(LocalFileClient('/mnt/home/bhatta70/Documents/gmn/gmn/data/cnn_hpo'))
+    experiment = HPOExperimentClient(
+        LocalFileClient(os.path.join(local_data_dir, results_dir))
+    )
 
-    dataset = client.read_dataset()
-    features, labels = dataset
-
+    features, labels = experiment.read_dataset()
 
     print(len(features), len(labels))
-
-
-    # features = torch.load(os.path.join(results_dir, "features.pt"))
-    # accuracies = torch.load(os.path.join(results_dir, "accuracies.pt"))
-
-    # print(len(features), len(accuracies))
-    # print(type(features[0][0]))
-    # print(len(features[0]))
-
-    # print(features[0][0].shape, features[0][1].shape, features[0][2].shape)
-    # print(accuracies[0])
 
     valid_size = 0.1
     test_size = 0.1
@@ -51,6 +41,14 @@ if __name__ == "__main__":
     train_set, valid_set, test_set = load_data(results_dir)
     print(len(train_set), len(valid_set), len(test_set))
     exit(0)
+    client = HPOExperimentClient(LocalFileClient("data/cnn_hpo"))
+    dataset = client.read_dataset()
+
+    features, val_losses = client.read_dataset()
+
+    valid_size = 0.1
+    test_size = 0.1
+    train_set, valid_set, test_set = split(features, val_losses, test_size, valid_size)
 
     feats_train, labels_train = train_set
     feats_valid, labels_valid = valid_set

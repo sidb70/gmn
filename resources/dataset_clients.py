@@ -1,7 +1,8 @@
 import os
 import json
+from typing import List
 from azure.core.exceptions import ResourceNotFoundError
-from preprocessing.preprocessing_types import TrainedNNResult
+from preprocessing.preprocessing_types import TrainedNNResult, HPODataset, HPOFeatures
 from .file_clients import FileClient, LocalFileClient
 
 
@@ -24,6 +25,8 @@ class HPOExperimentClient:
             file_client = LocalFileClient()
         self.file_client = file_client
 
+        self.features_filename = "model_features.pt"
+
     def save_model_result(self, result: TrainedNNResult):
 
         model_dir = str(result.model_id)
@@ -31,7 +34,7 @@ class HPOExperimentClient:
         self.file_client.delete_directory(model_dir)
 
         self.file_client.obj_to_pt_file(
-            result.epoch_feats, os.path.join(model_dir, "model_features.pt")
+            result.epoch_feats, os.path.join(model_dir, self.features_filename)
         )
 
         results = {
@@ -45,12 +48,6 @@ class HPOExperimentClient:
             json.dumps(results), os.path.join(model_dir, "results.json")
         )
 
-        print(
-            "Saved model {} to {}".format(
-                result.model_id, os.path.join(self.file_client.base_dir, model_dir)
-            )
-        )
-
     def save_dataset(self, model_results: list[TrainedNNResult]):
         """
         Saves results for all models.
@@ -61,7 +58,7 @@ class HPOExperimentClient:
     async def asave_dataset(self):
         raise NotImplementedError
 
-    def read_dataset(self):
+    def read_dataset(self) -> HPODataset:
         """
         Reads the dataset saved at self.base_dir.
 
@@ -71,39 +68,31 @@ class HPOExperimentClient:
         - List of train and val losses (per epoch)
         - hyperparams
         - final accuracy
-
         """
         model_dirs = self.file_client.list_directories()
 
-        features = []
-        labels = []
+        feats: List[HPOFeatures] = []
+        val_losses: List[float] = []
 
         for model_dir in model_dirs:
 
-            model_features = self.file_client.read_pt_file(
-                os.path.join(model_dir, "model_features.pt")
+            epoch_features = self.file_client.read_pt_file(
+                os.path.join(model_dir, self.features_filename)
             )
 
             results = json.loads(
                 self.file_client.read_file_b(os.path.join(model_dir, "results.json"))
             )
-            
-            epoch0_feats=model_features[0],
-            train_losses=results["train_losses"],
-            val_losses=results["val_losses"],
-            final_accuracy=results["accuracy"],
-            hpo_vec=results["hyperparameters"]
-            features.append([epoch0_feats, hpo_vec])
-            labels.append(val_losses[-1])
 
+            feats.append(
+                HPOFeatures(
+                    node_feats=epoch_features[0][0],
+                    edge_indices=epoch_features[0][1],
+                    edge_feats=epoch_features[0][2],
+                    hpo_vec=results["hyperparameters"],
+                )
+            )
 
+            val_losses.append(results["val_losses"][-1])
 
-        return features, labels
-
-
-
-    def delete_dataset(self):
-        """
-        Deletes the contents of self.base_dir
-        """
-        self.file_client.delete_directory()
+        return feats, val_losses
