@@ -103,10 +103,10 @@ def train_random_cnn(
         train_losses.append(running_train_loss / len(trainloader))
         val_losses.append(running_val_loss / len(validloader))
         epoch_feats.append(seq_to_feats(cnn))
-        # print(
-        #     f"Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}",
-        #     end="\r" if j < n_epochs - 1 else "\n",
-        # )
+        print(
+            f"Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}",
+            end="\r" if j < n_epochs - 1 else "\n",
+        )
     # calculate accuracy
     with torch.no_grad():
         correct = 0

@@ -18,19 +18,23 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        "dataset_location", type=str, choices=["local", "azure"], default="local"
+        '-f', "--filesystem", type=str, choices=["local", "azure"], default="local",
     )
-    parser.add_argument("results_dir", type=str, default=None)
-    
+    parser.add_argument("-d", "--results_dir", type=str, default="")
+
     args = parser.parse_args()
 
-    if args.dataset_location == "local":
+    print(args)
+
+    if args.filesystem == "local":
         file_client = LocalFileClient(args.results_dir or local_hpo_data_dir)
-    elif args.dataset_location == "azure":
-        file_client = AzureFileClient(args.results_dir or "cnn-hpo")
+    elif args.filesystem == "azure":
+        file_client = AzureFileClient(args.results_dir or 'hpo_data')
+
+    print(file_client.base_dir)
 
     dataset_client = HPOExperimentClient(file_client=file_client)
-
+    n_architectures = 1
     train_random_cnns_random_hyperparams(
         n_architectures=n_architectures,
         random_cnn_config=RandCNNConfig(),
