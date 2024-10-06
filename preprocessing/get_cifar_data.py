@@ -1,4 +1,4 @@
-from config import use_ffcv, cifar10_train_size
+from config import use_ffcv
 import os
 import torch
 import torchvision
@@ -65,6 +65,8 @@ def get_cifar_data(data_dir, device, batch_size, num_workers=1):
 
     else:
         cifar_10_dir = os.path.join(data_dir, "cifar10")
+
+        cifar10_train_size = 500 # used only for testing, without ffcv
 
         transform = transforms.Compose(
             [

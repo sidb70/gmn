@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import torch
 import torch.nn as nn
 from torch import optim
+from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from gmn_lim.model_arch_graph import seq_to_feats
@@ -39,7 +40,7 @@ def train_random_cnn(
     with the given hyperparameters, on the given CUDA device.
     """
 
-    print(f"Training model {architecture_id} on device {device}")
+    # print(f"Training model {architecture_id} on device {device}")
 
     hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
@@ -49,9 +50,9 @@ def train_random_cnn(
     )
 
     cnn = generate_random_cnn(random_cnn_config).to(device)
-    n_params = sum(p.numel() for p in cnn.parameters())
+    # n_params = sum(p.numel() for p in cnn.parameters())
 
-    print(f"model has {n_params} parameters")
+    # print(f"model has {n_params} parameters")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
@@ -102,10 +103,10 @@ def train_random_cnn(
         train_losses.append(running_train_loss / len(trainloader))
         val_losses.append(running_val_loss / len(validloader))
         epoch_feats.append(seq_to_feats(cnn))
-        print(
-            f"Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}",
-            end="\r" if j < n_epochs - 1 else "\n",
-        )
+        # print(
+        #     f"Epoch {j+1}/{n_epochs}, \ttrain loss: {epoch_train_loss:.3f}, \tval loss: {epoch_val_loss:.3f}",
+        #     end="\r" if j < n_epochs - 1 else "\n",
+        # )
     # calculate accuracy
     with torch.no_grad():
         correct = 0
@@ -144,9 +145,8 @@ def train_cnns(
     """
     print(f"Training {len(hyperparams_list)} CNN(s) on device {device}")
 
-    for i, hyperparams in enumerate(hyperparams_list):
+    for hyperparams in tqdm(hyperparams_list, desc=f"Models trained on device {device}"):
         model_id = str(uuid.uuid4())
-        print(f"device {device}\tmodel [{i+1}/{len(hyperparams_list)}]:{model_id}")
         try:
             result = train_random_cnn(model_id, hyperparams, random_cnn_config, device)
         except AssertionError as e:

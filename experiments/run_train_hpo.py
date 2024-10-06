@@ -9,13 +9,13 @@ from preprocessing.generate_data import train_random_cnns_random_hyperparams
 from train.utils import split
 from train.train_hpo import train_hpo
 from resources import LocalFileClient, HPOExperimentClient, LocalFileClient
-from config import local_data_dir
+from config import local_hpo_data_dir
 
 
 def load_data(results_dir="cnn_hpo"):
 
     experiment = HPOExperimentClient(
-        LocalFileClient(os.path.join(local_data_dir, results_dir))
+        LocalFileClient(os.path.join(local_hpo_data_dir, results_dir))
     )
 
     features, labels = experiment.read_dataset()
