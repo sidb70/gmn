@@ -38,7 +38,6 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
     n_fc_layers_range = config.n_fc_layers_range
     log_hidden_channels_range = config.log_hidden_channels_range
     log_hidden_fc_units_range = config.log_hidden_fc_units_range
-    use_avg_pool_prob = config.use_avg_pool_prob
     pool_after_conv = config.pool_after_conv
 
     layers = []  # list of nn.Module
@@ -80,13 +79,12 @@ def generate_random_cnn(config=RandCNNConfig()) -> nn.Sequential:
         conv_layer_number += 1
 
     # 2: conv to linear layers transition
-    if torch.rand(1).item() < use_avg_pool_prob:
-        # replace last two dimensions with 1 because we apply global pooling
-        layers.append(nn.AdaptiveAvgPool2d((1, 1)))
-        # TODO: fix norm_to_graph() in model_arch_graph when use_avg_pool_prob is False
-        flatten_out_shape = out_channels
-    else:
-        flatten_out_shape = out_channels * conv_out_dim * conv_out_dim
+    # replace last two dimensions with 1 because we apply global pooling
+    layers.append(nn.AdaptiveAvgPool2d((1, 1)))
+
+    flatten_out_shape = out_channels
+    # else:
+    #     flatten_out_shape = out_channels * conv_out_dim * conv_out_dim
 
     # add flatten layer
     layers.append(Flatten())
