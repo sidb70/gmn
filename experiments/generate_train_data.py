@@ -13,7 +13,7 @@ from resources import AzureFileClient, LocalFileClient, HPOExperimentClient
 import argparse
 
 
-if __name__ == "__main__":
+def get_dataset_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -28,6 +28,13 @@ if __name__ == "__main__":
         file_client = LocalFileClient(args.results_dir)
     elif args.filesystem == "azure":
         file_client = AzureFileClient(args.results_dir)
+
+    return file_client
+
+
+if __name__ == "__main__":
+
+    file_client = get_dataset_arguments()
 
     dataset_client = HPOExperimentClient(file_client=file_client)
 
