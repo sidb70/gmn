@@ -12,10 +12,7 @@ Sets all parameters to 1.
 """
 
 
-
-
 if __name__ == "__main__":
-
   data_client = parse_data_config_args(default_directory="data/fixed-arch_gmn_hpo")
 
 

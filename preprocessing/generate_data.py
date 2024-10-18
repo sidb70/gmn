@@ -21,6 +21,7 @@ from preprocessing.preprocessing_types import *
 # DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 NUM_GPUS = torch.cuda.device_count()
 if NUM_GPUS > 0:
+    mp.set_start_method('spawn', force=True)
     DEVICES = [torch.device(f"cuda:{i}") for i in range(NUM_GPUS)]
 else:
     DEVICES = [torch.device("cpu")]
@@ -55,7 +56,7 @@ def train_random_cnn(
         data_dir="./data/", device=device, batch_size=batch_size
     )
 
-    cnn = generate_random_cnn(random_cnn_config)
+    cnn = generate_random_cnn(random_cnn_config).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
