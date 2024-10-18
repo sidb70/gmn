@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
 import torch
 from train.gmn_trainer import GMNHPOTrainer
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     args.add_argument("--epochs", type=int, default=50)
     args.add_argument("--lr", type=float, default=0.001)
     args = args.parse_args()
-    client = HPOExperimentClient(LocalFileClient('/mnt/home/bhatta70/Documents/gmn/gmn/data/fixed_hp_data'))
+    client = HPOExperimentClient(LocalFileClient(local_hpo_data_dir))
     dataset = client.read_dataset()
 
     features, labels = client.read_dataset()

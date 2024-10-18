@@ -103,23 +103,30 @@ class NodeModel(nn.Module):
 
 
 class BaseMPNN(nn.Module):
-    def __init__(self, hidden_dim):
+    def __init__(self, hidden_dim, num_hidden_layers = 3, final_dim=None):
         super().__init__()
         self.encoder = NodeEdgeFeatEncoder(hidden_dim=hidden_dim)
         edge_in_dim = 3 * hidden_dim
         node_in_dim = 2 * hidden_dim
+        final_dim = hidden_dim if final_dim is None else final_dim
         self.meta_layers = nn.ModuleList(
             [
                 MetaLayer(
                     EdgeModel(edge_in_dim, hidden_dim),
                     NodeModel(node_in_dim, hidden_dim),
                 )
-                for _ in range(3)
+                for _ in range(num_hidden_layers)
             ]
+                + 
+                [MetaLayer(
+                    EdgeModel(edge_in_dim, final_dim),
+                    NodeModel(hidden_dim+1, final_dim),
+                    )]
+            
         )
-        self.node_norm = nn.BatchNorm1d(hidden_dim)
-        self.edge_norm = nn.BatchNorm1d(hidden_dim)
-        self.regression = nn.Linear(2 * hidden_dim, 1)
+        self.node_norms = nn.ModuleList([nn.BatchNorm1d(hidden_dim) for _ in range(num_hidden_layers)])
+        self.edge_norm = nn.ModuleList([nn.BatchNorm1d(hidden_dim) for _ in range(num_hidden_layers)])
+        self.regression = nn.Linear(2 * final_dim, 1)
 
     def forward(self, x, edge_index, edge_attr, u=None, batch=None):
         # print("Base MPNN forward")
@@ -128,8 +135,8 @@ class BaseMPNN(nn.Module):
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
                 # print('calling norm layers')
-                x = self.node_norm(x)
-                edge_attr = self.edge_norm(edge_attr)
+                x = self.node_norms[i](x)
+                edge_attr = self.edge_norm[i](edge_attr)
         node_attr_readout = torch.mean(x, dim=0).unsqueeze(0)
         edge_attr_readout = torch.mean(edge_attr, dim=0).unsqueeze(0)
         # print("Node attr readout shape", node_attr_readout.shape, "edge attr readout shape", edge_attr_readout.shape)
@@ -153,9 +160,25 @@ class HPOMPNN(BaseMPNN):
         for i, layer in enumerate(self.meta_layers):
             x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
             if i < len(self.meta_layers) - 1:
-                x = self.node_norm(x)
-                edge_attr = self.edge_norm(edge_attr)
+                x = self.node_norms[i](x)
+                edge_attr = self.edge_norm[i](edge_attr)
+        print("\nFinal x shape: ", x.shape, "Final edge_attr shape: ", edge_attr.shape)
         node_attr_readout = torch.mean(x, dim=0).unsqueeze(0)
         edge_attr_readout = torch.mean(edge_attr, dim=0).unsqueeze(0)
         meta_out = torch.cat([node_attr_readout, edge_attr_readout, hpo], dim=1)
         return self.mlp(meta_out)
+
+class EdgePredictorMPNN(BaseMPNN):
+    def __init__(self, hidden_dim):
+        super().__init__(hidden_dim, num_hidden_layers=4, final_dim=1)
+
+    def forward(self, x, edge_index, edge_attr, u=None, batch=None):
+        x, edge_attr = self.encoder(x, edge_attr)
+        for i, layer in enumerate(self.meta_layers):
+            # print("Layer ", i)
+            x, edge_attr, u = layer.forward(x, edge_index, edge_attr, u, batch)
+            if i < len(self.meta_layers) - 1:
+                x = self.node_norms[i](x)
+                edge_attr = self.edge_norm[i](edge_attr)
+            # print("x shape: ", x.shape, "edge_attr shape: ", edge_attr.shape)
+        return x, edge_attr

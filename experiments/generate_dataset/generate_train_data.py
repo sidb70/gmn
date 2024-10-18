@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
 from config import n_architectures, n_epochs_range
 from preprocessing.generate_data import train_random_cnns_random_hyperparams

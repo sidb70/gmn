@@ -1,6 +1,7 @@
 import os
 import json
 from typing import List
+import random
 from azure.core.exceptions import ResourceNotFoundError
 from preprocessing.preprocessing_types import TrainedNNResult, HPODataset, HPOFeatures
 from .file_clients import FileClient, LocalFileClient
@@ -62,9 +63,12 @@ class HPOExperimentClient:
     async def asave_dataset(self):
         raise NotImplementedError
 
-    def read_dataset(self) -> HPODataset:
+    def read_dataset(self, n_samples: int) -> HPODataset:
         """
         Reads the dataset saved at self.base_dir.
+
+        Args:
+        - n_samples: number of samples to read. If -1, read all samples.
 
         Returns:
         (per model:)
@@ -74,6 +78,9 @@ class HPOExperimentClient:
         - final accuracy
         """
         model_dirs = self.file_client.list_directories()
+        random.shuffle(model_dirs)
+        model_dirs = model_dirs[:n_samples if n_samples != -1 else len(model_dirs)]
+        
 
         features: List[HPOFeatures] = []
         labels: List[float] = []
@@ -87,22 +94,60 @@ class HPOExperimentClient:
             results = json.loads(
                 self.file_client.read_file_b(os.path.join(model_dir, "results.json"))
             )
-
-            # print("Results: ", results) 
-            # for i, epoch_feats in enumerate(model_features):
-            #     # save epoch feats individually
-            #     self.file_client.obj_to_pt_file(
-            #         epoch_feats, os.path.join(model_dir, f"epoch_{i}_feats.pt")
-            #     )
-            
-            # epoch0_feats=model_features[0],
             train_losses=results["train_losses"]
             val_losses=results["val_losses"]
             final_accuracy=results["accuracy"]
+            if final_accuracy <=.1:
+                continue
             hpo_vec=results["hyperparameters"]
             features.append([epoch0_feats, hpo_vec])
             labels.append(val_losses[-1])
 
+        return features, labels
+    
+class FixedHPExperimentClient(HPOExperimentClient):
+    def read_dataset(self, n_samples: int) -> HPODataset:
+        """
+        Reads the dataset saved at self.base_dir.
 
+        Args:
+        - n_samples: number of samples to read. If -1, read all samples.
+
+        Returns:
+        (per model:)
+        - List of feats (per epoch)
+        - List of train and val losses (per epoch)
+        - hyperparams
+        - final accuracy
+        """
+        model_dirs = self.file_client.list_directories()
+        random.shuffle(model_dirs)
+        model_dirs = model_dirs[:n_samples if n_samples != -1 else len(model_dirs)]
+
+        features: List[HPOFeatures] = []
+        labels: List[float] = []
+
+        for model_dir in model_dirs:
+            results = json.loads(
+                self.file_client.read_file_b(os.path.join(model_dir, "results.json"))
+            )
+            n_epochs = results['hyperparameters'][-2]
+
+            epoch0_feats = self.file_client.read_pt_file(
+                os.path.join(model_dir, "epoch_0_feats.pt")
+            )
+            last_epoch_feats = self.file_client.read_pt_file(
+                os.path.join(model_dir, f"epoch_{n_epochs-1}_feats.pt")
+            )
+
+
+            train_losses=results["train_losses"]
+            val_losses=results["val_losses"]
+            final_accuracy=results["accuracy"]
+            if final_accuracy <=.1:
+                continue
+            features.append(epoch0_feats)
+            labels.append(last_epoch_feats)
 
         return features, labels
+    

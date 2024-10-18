@@ -1,5 +1,5 @@
 plotly==5.22.0
-matplotlib==3.9.1
+matplotlib
 scikit-learn==1.5.2
 networkx==3.3
 igraph==0.11.6

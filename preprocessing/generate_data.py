@@ -40,7 +40,7 @@ def train_random_cnn(
     with the given hyperparameters, on the given CUDA device.
     """
 
-    # print(f"Training model {architecture_id} on device {device}")
+    print(f"Training model {architecture_id} on device {device} with hyperparameters {hyperparams}")
 
     hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
@@ -120,7 +120,7 @@ def train_random_cnn(
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
         accuracy = correct / total
-
+    print("final accuracy: ", accuracy)
     result = TrainedNNResult(
         model_id=architecture_id,
         torch_model=cnn,
@@ -162,7 +162,7 @@ def train_cnns(
 def train_random_cnns_random_hyperparams(
     save_result_callback: Callable[[TrainedNNResult], None],
     n_architectures,
-    random_hyperparams_config=RandHyperparamsConfig(),
+    hyperparams_list: List[Hyperparameters],
     random_cnn_config=RandCNNConfig(),
 ):
     """
@@ -174,9 +174,7 @@ def train_random_cnns_random_hyperparams(
     - save_result_callback: A callback that is called after every model finished training.
     """
 
-    hyperparams_list = [
-        random_hyperparams_config.sample() for _ in range(n_architectures)
-    ]
+    
     free_devices = DEVICES.copy()
     with EXECUTOR as executor:
         futures = []
