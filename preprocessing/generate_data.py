@@ -7,6 +7,7 @@ import concurrent.futures as cfutures
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import torch
 import torch.nn as nn
+import torch.multiprocessing as mp
 from torch import optim
 from tqdm import tqdm
 
@@ -40,19 +41,21 @@ def train_random_cnn(
     with the given hyperparameters, on the given CUDA device.
     """
 
-    # print(f"Training model {architecture_id} on device {device}")
+    print(f"Training model {architecture_id} on device {device}")
+
+    if device.type == "cuda":
+      torch.cuda.set_device(device)
+    else:
+      torch.cpu.set_device(device)
 
     hpo_vec = hyperparams.to_vec()
     batch_size, lr, n_epochs, momentum = hpo_vec
 
     trainloader, validloader, testloader = get_cifar_data(
-        data_dir="./data/", device=torch.device(device), batch_size=batch_size
+        data_dir="./data/", device=device, batch_size=batch_size
     )
 
-    cnn = generate_random_cnn(random_cnn_config).to(device)
-    # n_params = sum(p.numel() for p in cnn.parameters())
-
-    # print(f"model has {n_params} parameters")
+    cnn = generate_random_cnn(random_cnn_config)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(cnn.parameters(), lr=lr)
@@ -67,7 +70,6 @@ def train_random_cnn(
         running_train_loss = 0.0
         for k, data in enumerate(trainloader, 0):
             inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
 
             outputs = cnn(inputs).reshape(-1, 10)
@@ -80,10 +82,11 @@ def train_random_cnn(
             loss.backward()
             optimizer.step()
         running_val_loss = 0.0
+
         with torch.no_grad():
+            # calculate validation loss
             for k, data in enumerate(validloader, 0):
                 inputs, labels = data
-                inputs, labels = inputs.to(device), labels.to(device)
 
                 outputs = cnn(inputs).reshape(-1, 10)
                 labels = labels.reshape(-1)
@@ -98,6 +101,7 @@ def train_random_cnn(
                 assert torch.max(labels) < 10
                 loss = criterion(outputs, labels)
                 running_val_loss += loss.item()
+
         epoch_train_loss = running_train_loss / len(trainloader)
         epoch_val_loss = running_val_loss / len(validloader)
         train_losses.append(running_train_loss / len(trainloader))
@@ -112,9 +116,8 @@ def train_random_cnn(
         correct = 0
         total = 0
         for data in testloader:
-            images, labels = data
-            images, labels = images.to(device), labels.to(device)
-            outputs = cnn(images).reshape(-1, 10)
+            inputs, labels = data
+            outputs = cnn(inputs).reshape(-1, 10)
             labels = labels.reshape(-1)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
@@ -146,9 +149,7 @@ def train_random_cnns_with_hyperparams(
     """
     print(f"Training {len(hyperparams_list)} CNN(s) on device {device}")
 
-    for hyperparams in tqdm(
-        hyperparams_list, desc=f"Models trained on device {device}"
-    ):
+    for hyperparams in hyperparams_list:
         model_id = str(uuid.uuid4())
         try:
             result = train_random_cnn(model_id, hyperparams, random_cnn_config, device)
@@ -164,35 +165,61 @@ def train_random_cnns_random_hyperparams(
     n_architectures,
     random_hyperparams_config=RandHyperparamsConfig(),
     random_cnn_config=RandCNNConfig(),
+    seed: int=None,
 ):
     """
     Generates random CNN architectures and trains them on CIFAR10 data.
     Trains one CNN for each set of hyperparameters provided.
+    Distributes training models sequentially across all available GPUs.
 
     Args:
     - random_cnn_config: RandomCNNConfig, the configuration for generating random CNNs
     - save_result_callback: A callback that is called after every model finished training.
     """
 
+    if seed:
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+
     hyperparams_list = [
         random_hyperparams_config.sample() for _ in range(n_architectures)
     ]
-    free_devices = DEVICES.copy()
-    with EXECUTOR as executor:
-        futures = []
-        num_gpus = len(free_devices)
-        partitions = [hyperparams_list[i::num_gpus] for i in range(num_gpus)]
 
-        for i, device in enumerate(free_devices):
-            hyperparams_list_device = list(partitions[i])
-            futures.append(
-                executor.submit(
-                    train_random_cnns_with_hyperparams,
-                    device,
-                    save_result_callback,
-                    hyperparams_list_device,
-                    random_cnn_config,
-                )
-            )
-        for future in cfutures.as_completed(futures):
-            future.result()
+    processes = []
+
+    for i, device in enumerate(DEVICES):
+        hyperparams_list_device = hyperparams_list[i::len(DEVICES)]
+
+        p = mp.Process(
+            target=train_random_cnns_with_hyperparams,
+            args=(device, save_result_callback, hyperparams_list_device, random_cnn_config),
+        )
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+    print("Finished training on all devices")
+
+
+    # free_devices = DEVICES.copy()
+    # with EXECUTOR as executor:
+    #     futures = []
+    #     num_gpus = len(free_devices)
+    #     partitions = [hyperparams_list[i::num_gpus] for i in range(num_gpus)]
+
+    #     for i, device in enumerate(free_devices):
+    #         hyperparams_list_device = list(partitions[i])
+    #         futures.append(
+    #             executor.submit(
+    #                 train_random_cnns_with_hyperparams,
+    #                 device,
+    #                 save_result_callback,
+    #                 hyperparams_list_device,
+    #                 random_cnn_config,
+    #             )
+    #         )
+    #     for future in cfutures.as_completed(futures):
+    #         future.result()
