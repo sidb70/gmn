@@ -39,9 +39,10 @@ class HPOExperimentClient:
                 epoch_feats, os.path.join(model_dir, f"epoch_{i}_feats.pt")
             )
 
+        self.file_client.obj_to_pt_file(result.torch_model, os.path.join(model_dir, "torch_model.pt"))
+
         results = {
             "hyperparameters": result.hpo_vec,
-            "torch_model": result.torch_model,
             "train_losses": result.train_losses,
             "val_losses": result.val_losses,
             "accuracy": result.final_accuracy,

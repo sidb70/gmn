@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from config import n_architectures, n_epochs_range, local_hpo_data_dir
+from config import n_architectures, n_epochs_range
 from preprocessing.generate_data import train_random_cnns_random_hyperparams
 from preprocessing.preprocessing_types import (
     RandHyperparamsConfig,
@@ -25,9 +25,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.filesystem == "local":
-        file_client = LocalFileClient(args.results_dir or local_hpo_data_dir)
+        file_client = LocalFileClient(args.results_dir)
     elif args.filesystem == "azure":
-        file_client = AzureFileClient(args.results_dir or 'hpo_data')
+        file_client = AzureFileClient(args.results_dir)
 
     dataset_client = HPOExperimentClient(file_client=file_client)
 
