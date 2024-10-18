@@ -135,7 +135,7 @@ def train_random_cnn(
     return result
 
 
-def train_cnns(
+def train_random_cnns_with_hyperparams(
     device: torch.device,
     save_result_callback: Callable[[TrainedNNResult], None],
     hyperparams_list: List[Hyperparameters],
@@ -146,14 +146,14 @@ def train_cnns(
     """
     print(f"Training {len(hyperparams_list)} CNN(s) on device {device}")
 
-    for hyperparams in tqdm(hyperparams_list, desc=f"Models trained on device {device}"):
+    for hyperparams in tqdm(
+        hyperparams_list, desc=f"Models trained on device {device}"
+    ):
         model_id = str(uuid.uuid4())
         try:
             result = train_random_cnn(model_id, hyperparams, random_cnn_config, device)
         except AssertionError as e:
-            print(
-                f"Error training model with hyperparameters {hyperparams}: {e}"
-            )
+            print(f"Error training model with hyperparameters {hyperparams}: {e}")
             continue
         save_result_callback(result)
     print("Finished training on device", device)
@@ -187,7 +187,7 @@ def train_random_cnns_random_hyperparams(
             hyperparams_list_device = list(partitions[i])
             futures.append(
                 executor.submit(
-                    train_cnns,
+                    train_random_cnns_with_hyperparams,
                     device,
                     save_result_callback,
                     hyperparams_list_device,

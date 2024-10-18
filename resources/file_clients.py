@@ -134,7 +134,7 @@ class AzureFileClient(FileClient):
         conn_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
         if not conn_string:
             raise ValueError("Azure storage connection string not found")
-        
+
         if base_dir == "":
             raise ValueError("base_dir can't be the root directory")
 

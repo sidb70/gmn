@@ -56,7 +56,6 @@ def generate_data():
     print(f"Trained {n_architectures} CNNs in {time.time() - start_time:.2f} seconds.")
 
 
-
 @app.local_entrypoint()
 def main():
     generate_data.remote()

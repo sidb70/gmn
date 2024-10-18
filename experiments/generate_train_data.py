@@ -18,7 +18,11 @@ def get_dataset_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
-        '-f', "--filesystem", type=str, choices=["local", "azure"], default="local",
+        "-f",
+        "--filesystem",
+        type=str,
+        choices=["local", "azure"],
+        default="local",
     )
     parser.add_argument("-d", "--results_dir", type=str, default="")
 

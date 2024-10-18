@@ -10,7 +10,6 @@ from config import local_hpo_data_dir
 from argparse import ArgumentParser
 
 
-
 torch.manual_seed(0)
 if __name__ == "__main__":
     """
@@ -18,7 +17,12 @@ if __name__ == "__main__":
     """
 
     args = ArgumentParser()
-    args.add_argument("--results_dir", type=str, default="data/hpo_result", help="Directory to save results")
+    args.add_argument(
+        "--results_dir",
+        type=str,
+        default="data/hpo_result",
+        help="Directory to save results",
+    )
     args.add_argument("--node_feat_dim", type=int, default=3)
     args.add_argument("--edge_feat_dim", type=int, default=6)
     args.add_argument("--node_hidden_dim", type=int, default=32)

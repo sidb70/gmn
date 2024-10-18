@@ -6,7 +6,14 @@ import torch_geometric
 import sys
 
 sys.path.insert(0, "./graph_construct")
-from .constants import NODE_TYPES, EDGE_TYPES, CONV_LAYERS, NORM_LAYERS, RESIDUAL_LAYERS, NODE_TYPE_TO_LAYER
+from .constants import (
+    NODE_TYPES,
+    EDGE_TYPES,
+    CONV_LAYERS,
+    NORM_LAYERS,
+    RESIDUAL_LAYERS,
+    NODE_TYPE_TO_LAYER,
+)
 from .utils import (
     make_node_feat,
     make_edge_attr,
@@ -282,11 +289,12 @@ def arch_to_graph(arch, self_loops=False):
     edge_attr = torch.cat(edge_attr, dim=0)
     return node_features, edge_index, edge_attr
 
+
 def feats_to_arch(node_features):
     arch = {}
     for i in range(node_features.shape[0]):
         node_feats = node_features[i]
-        layer_num, _, node_type =  node_feats
+        layer_num, _, node_type = node_feats
         layer_num = layer_num.item()
         node_type = node_type.item()
         if layer_num in arch:
@@ -296,6 +304,7 @@ def feats_to_arch(node_features):
     arch = [arch[i] for i in range(len(arch))]
 
     return arch
+
 
 def graph_to_arch(arch, weights):
     arch_new = []

@@ -19,12 +19,12 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def train_epoch(model, feats, labels, batch_size, criterion, optimizer):
-    epoch_running_loss =0 
+    epoch_running_loss = 0
     num_batches = 0
     for i in range(0, len(feats), batch_size):
         outs = []
         for j in range(i, min(i + batch_size, len(feats))):
-            #print("j: ", type(feats[j][0]), type(feats[j][1]))
+            # print("j: ", type(feats[j][0]), type(feats[j][1]))
             (node_feat, edge_index, edge_feat), hpo_vec = feats[j]
             node_feat, edge_index, edge_feat, hpo_vec = (
                 torch.tensor(node_feat).to(DEVICE),
@@ -108,7 +108,7 @@ def train_hpo(args, feats, labels):
     # print("Feats: ", type(feats), "composed of", type(feats[0]))
     # print("Labels: ", type(labels), "composed of", type(labels[0]))
 
-    train_set, valid_set, test_set = split( feats, labels, test_size, valid_size)
+    train_set, valid_set, test_set = split(feats, labels, test_size, valid_size)
     model = HPOMPNN(hidden_dim, hpo_dim=len(feats[0][-1])).to(DEVICE)
 
     # optimizer
@@ -139,7 +139,12 @@ def train_hpo(args, feats, labels):
 
 if __name__ == "__main__":
     args = ArgumentParser()
-    args.add_argument("--results_dir", type=str, default="data/hpo_result", help="Directory to save results")
+    args.add_argument(
+        "--results_dir",
+        type=str,
+        default="data/hpo_result",
+        help="Directory to save results",
+    )
     args.add_argument("--node_feat_dim", type=int, default=3)
     args.add_argument("--edge_feat_dim", type=int, default=6)
     args.add_argument("--node_hidden_dim", type=int, default=16)
